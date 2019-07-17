@@ -1,0 +1,20 @@
+[[constraint]]
+  name="sigs.k8s.io/controller-runtime"
+  version = "=0.1.9"
+
+[[override]]
+  name = "k8s.io/api"
+  version = "kubernetes-1.12.6"
+
+[[override]]
+  name = "github.com/knative/pkg"
+  # HEAD as of 2019-04-26
+  revision = "52709ba13d9b77473fe37f2481312a62f63a7d6d"
+
+[[override]]
+  name = "k8s.io/apimachinery"
+  version = "kubernetes-1.12.6"
+
+[[override]]
+  name = "k8s.io/client-go"
+  version = "kubernetes-1.12.6"
