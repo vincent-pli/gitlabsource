@@ -19,8 +19,8 @@ package main
 import (
 	"log"
 
-	"github.com/knative/eventing-sources/contrib/gitlab/pkg/apis"
-	controller "github.com/knative/eventing-sources/contrib/gitlab/pkg/reconciler"
+	"github.com/vincent-pli/gitlabsource/pkg/apis"
+	controller "github.com/vincent-pli/gitlabsource/pkg/reconciler"
 	"github.com/knative/pkg/logging/logkey"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"

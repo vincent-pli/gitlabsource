@@ -22,8 +22,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	sourcesv1alpha1 "github.com/knative/eventing-sources/contrib/gitlab/pkg/apis/sources/v1alpha1"
-	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
+	sourcesv1alpha1 "github.com/vincent-pli/gitlabsource/pkg/apis/sources/v1alpha1"
 )
 
 // MakeService generates, but does not create, a Service for the given

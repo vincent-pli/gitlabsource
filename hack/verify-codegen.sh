@@ -31,7 +31,7 @@ trap "cleanup" EXIT SIGINT
 cleanup
 
 # Save working tree state
-mkdir -p "${TMP_DIFFROOT}"
+mkdir -p "${TMP_DIFFROOT}/pkg"
 cp -aR "${REPO_ROOT_DIR}/Gopkg.lock" "${REPO_ROOT_DIR}/pkg" "${REPO_ROOT_DIR}/vendor" "${TMP_DIFFROOT}"
 
 "${REPO_ROOT_DIR}/hack/update-codegen.sh"
@@ -47,7 +47,7 @@ cp -aR "${TMP_DIFFROOT}"/* "${REPO_ROOT_DIR}"
 if [[ $ret -eq 0 ]]
 then
   echo "${REPO_ROOT_DIR} up to date."
- else
+else
   echo "${REPO_ROOT_DIR} is out of date. Please run hack/update-codegen.sh"
   exit 1
 fi

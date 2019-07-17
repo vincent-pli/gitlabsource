@@ -26,7 +26,7 @@ import (
 	"github.com/cloudevents/sdk-go/pkg/cloudevents"
 	"github.com/cloudevents/sdk-go/pkg/cloudevents/client"
 	"github.com/cloudevents/sdk-go/pkg/cloudevents/types"
-	sourcesv1alpha1 "github.com/knative/eventing-sources/contrib/gitlab/pkg/apis/sources/v1alpha1"
+	sourcesv1alpha1 "github.com/vincent-pli/gitlabsource/pkg/apis/sources/v1alpha1"
 	"github.com/knative/eventing-sources/pkg/kncloudevents"
 	gl "gopkg.in/go-playground/webhooks.v5/gitlab"
 )

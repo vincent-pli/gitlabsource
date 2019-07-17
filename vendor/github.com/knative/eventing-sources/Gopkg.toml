@@ -1,0 +1,106 @@
+required = [
+    "github.com/knative/test-infra/scripts",
+    "github.com/knative/test-infra/tools/dep-collector",
+    "github.com/emicklei/go-restful",
+    "github.com/onsi/ginkgo", # for test framework
+    "github.com/onsi/gomega", # for test matchers
+    "k8s.io/client-go/plugin/pkg/client/auth/gcp", # for development against gcp
+    "k8s.io/code-generator/cmd/deepcopy-gen", # for go generate
+    "sigs.k8s.io/controller-tools/cmd/controller-gen", # for crd/rbac generation
+    "sigs.k8s.io/controller-runtime/pkg/client/config",
+    "sigs.k8s.io/controller-runtime/pkg/controller",
+    "sigs.k8s.io/controller-runtime/pkg/handler",
+    "sigs.k8s.io/controller-runtime/pkg/manager",
+    "sigs.k8s.io/controller-runtime/pkg/runtime/signals",
+    "sigs.k8s.io/controller-runtime/pkg/source",
+    "sigs.k8s.io/testing_frameworks/integration", # for integration testing
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1",
+    ]
+
+[prune]
+  go-tests = true
+  unused-packages = true
+  non-go = true
+
+[[prune.project]]
+  name = "github.com/knative/test-infra"
+  non-go = false
+
+[[prune.project]]
+  name = "k8s.io/code-generator"
+  unused-packages = false
+  non-go = false
+
+[[prune.project]]
+  name = "k8s.io/gengo"
+  unused-packages = false
+
+[[override]]
+  name = "knative.dev/pkg"
+  branch = "master"
+
+[[override]]
+  name = "k8s.io/api"
+  version = "kubernetes-1.12.6"
+
+[[override]]
+  name = "k8s.io/apimachinery"
+  version = "kubernetes-1.12.6"
+
+[[override]]
+  name = "k8s.io/code-generator"
+  version = "kubernetes-1.12.6"
+
+[[override]]
+  name = "k8s.io/client-go"
+  version = "kubernetes-1.12.6"
+
+[[override]]
+  name = "k8s.io/apiextensions-apiserver"
+  version = "kubernetes-1.12.6"
+
+[[override]]
+  name = "cloud.google.com/go"
+  revision = "90f2606161ee6a14efe2ca79fc05ac2b8efe250b"
+
+[[constraint]]
+  name = "github.com/knative/serving"
+  # HEAD as of 2019-06-26. Needed to test github.
+  revision = "50cdf8762deae58ed89763adef26a88e7efecac7"
+
+[[constraint]]
+  name = "github.com/knative/eventing"
+  # HEAD as of 2019-06-26. Needed to import EventType API object.
+  revision = "677d3d17e84b7337f006220d6bb465af4f416f81"
+
+[[constraint]]
+  name="sigs.k8s.io/controller-runtime"
+  version = "=0.1.9"
+
+# For dependency below: Refer to issue https://github.com/golang/dep/issues/1799
+[[override]]
+  name = "gopkg.in/fsnotify.v1"
+  source = "https://github.com/fsnotify/fsnotify.git"
+  version="v1.4.7"
+
+[[override]]
+  name = "github.com/json-iterator/go"
+  # This is the commit at which k8s depends on this in 1.11
+  # It seems to be broken at HEAD.
+  revision = "f2b4162afba35581b6d4a50d3b8f34e33c144682"
+
+[[constraint]]
+  name = "github.com/aws/aws-sdk-go"
+  version = "1.15.73"
+
+[[constraint]]
+  name = "github.com/gorilla/websocket"
+  version = "1.4.0"
+
+[[override]]
+  name = "github.com/cloudevents/sdk-go"
+  version = "=0.7.0"
+
+[[constraint]]
+  name = "github.com/apache/camel-k"
+  version = "0.3.4"

@@ -23,7 +23,7 @@ import (
 	"net/http"
 	"os"
 
-	gitlab "github.com/knative/eventing-sources/contrib/gitlab/pkg/adapter"
+	gitlab "github.com/vincent-pli/gitlabsource/pkg/adapter"
 	gl "gopkg.in/go-playground/webhooks.v5/gitlab"
 )
 
