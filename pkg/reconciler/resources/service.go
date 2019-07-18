@@ -19,17 +19,17 @@ package resources
 import (
 	"fmt"
 
+	sourcesv1alpha1 "github.com/vincent-pli/gitlabsource/pkg/apis/sources/v1alpha1"
+	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	sourcesv1alpha1 "github.com/vincent-pli/gitlabsource/pkg/apis/sources/v1alpha1"
 )
 
-// MakeService generates, but does not create, a Service for the given
-// GitLabSource.
-func MakeService(source *sourcesv1alpha1.GitLabSource, receiveAdapterImage string) *servingv1alpha1.Service {
+func MakeReceiveAdapter(source *sourcesv1alpha1.GitLabSource, receiveAdapterImage string) *v1.Deployment {
+	replicas := int32(1)
 	labels := map[string]string{
-		"receive-adapter": "gitlab",
+		"eventing-source": "gitlab-source-controller",
+		"eventing-source-name": source.Name
 	}
 	sinkURI := source.Status.SinkURI
 	env := []corev1.EnvVar{
@@ -45,23 +45,33 @@ func MakeService(source *sourcesv1alpha1.GitLabSource, receiveAdapterImage strin
 		},
 	}
 	containerArgs := []string{fmt.Sprintf("--sink=%s", sinkURI)}
-	return &servingv1alpha1.Service{
+
+	return &v1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: fmt.Sprintf("%s-", source.Name),
 			Namespace:    source.Namespace,
 			Labels:       labels,
 		},
-		Spec: servingv1alpha1.ServiceSpec{
-			RunLatest: &servingv1alpha1.RunLatestType{
-				Configuration: servingv1alpha1.ConfigurationSpec{
-					RevisionTemplate: servingv1alpha1.RevisionTemplateSpec{
-						Spec: servingv1alpha1.RevisionSpec{
-							ServiceAccountName: source.Spec.ServiceAccountName,
-							Container: corev1.Container{
-								Image: receiveAdapterImage,
-								Env:   env,
-								Args:  containerArgs,
-							},
+		Spec: v1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels,
+			},
+			Replicas: &replicas,
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"sidecar.istio.io/inject": "true",
+					},
+					Labels: labels,
+				},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: source.Spec.ServiceAccountName,
+					Containers: []corev1.Container{
+						{
+							Name:  "receive-adapter",
+							Image: receiveAdapterImage,
+							Env:   env,
+							Args:  containerArgs,
 						},
 					},
 				},

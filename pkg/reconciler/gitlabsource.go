@@ -26,10 +26,7 @@ import (
 
 	sourcesv1alpha1 "github.com/vincent-pli/gitlabsource/pkg/apis/sources/v1alpha1"
 	"github.com/vincent-pli/gitlabsource/pkg/reconciler/resources"
-	//"github.com/knative/eventing-sources/pkg/controller/sdk"
-	//"github.com/knative/eventing-sources/pkg/controller/sinks"
 	"github.com/knative/pkg/logging"
-	//servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -47,7 +44,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	clientset "github.com/vincent-pli/gitlabsource/pkg/client/clientset/versioned"
 	listers "github.com/vincent-pli/gitlabsource/pkg/client/listers/sources/v1alpha1"
-
+	v1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 const (
@@ -60,6 +58,7 @@ const (
 
 // reconciler reconciles a GitLabSource object
 type Reconciler struct {
+	client   client.Client
 	KubeClientSet              kubernetes.Interface
 	sourceClientSet    clientset.Interface
 	sourceLister       listers.GitLabSourceLister
@@ -84,7 +83,7 @@ type webhookArgs struct {
 // Reconcile reads that state of the cluster for a GitLabSource
 // object and makes changes based on the state read and what is in the
 // GitLabSource.Spec
-func (r *reconciler) Reconcile(ctx context.Context, key string) error {
+func (r *Reconciler) Reconcile(ctx context.Context, key string) error {
 	c.Logger.Infof("Reconciling %v", time.Now())
 
 	// Convert the namespace/name string into a distinct namespace and name
@@ -124,7 +123,7 @@ func (r *reconciler) Reconcile(ctx context.Context, key string) error {
 	return reconcileErr
 }
 
-func (r *reconciler) reconcile(ctx context.Context, source *sourcesv1alpha1.GitLabSource) error {
+func (r *Reconciler) reconcile(ctx context.Context, source *sourcesv1alpha1.GitLabSource) error {
 	source.Status.InitializeConditions()
 
 	accessToken, err := r.secretFrom(ctx, source.Namespace, source.Spec.AccessToken.SecretKeyRef)
@@ -139,24 +138,24 @@ func (r *reconciler) reconcile(ctx context.Context, source *sourcesv1alpha1.GitL
 	}
 	source.Status.MarkSecrets()
 
-	uri, err := sinks.GetSinkURI(ctx, r.client, source.Spec.Sink, source.Namespace)
+	uri, err := getSinkURI(ctx, r.client, source.Spec.Sink, source.Namespace)
 	if err != nil {
 		source.Status.MarkNoSink("NotFound", "%s", err)
 		return err
 	}
 	source.Status.MarkSink(uri)
 
-	ksvc, err := r.getOwnedService(ctx, source)
+	receiver, err := r.getOwnedReceiver(ctx, source)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			ksvc = resources.MakeService(source, r.receiveAdapterImage)
-			if err = controllerutil.SetControllerReference(source, ksvc, r.scheme); err != nil {
+			receiver = resources.MakeReceiveAdapter(source, r.receiveAdapterImage)
+			if err = controllerutil.SetControllerReference(source, receiver, r.scheme); err != nil {
 				return err
 			}
-			if err = r.client.Create(ctx, ksvc); err != nil {
+			if err = r.client.Create(ctx, receiver); err != nil {
 				return err
 			}
-			r.recorder.Eventf(source, corev1.EventTypeNormal, "ServiceCreated", "Created Service %q", ksvc.Name)
+			r.recorder.Eventf(source, corev1.EventTypeNormal, "ServiceCreated", "Created Service %q", receiver.Name)
 			// TODO: Mark Deploying for the ksvc
 			// Wait for the Service to get a status
 			return nil
@@ -165,27 +164,23 @@ func (r *reconciler) reconcile(ctx context.Context, source *sourcesv1alpha1.GitL
 		return err
 	}
 
-	routeCondition := ksvc.Status.GetCondition(servingv1alpha1.ServiceConditionRoutesReady)
-	receiveAdapterDomain := ksvc.Status.Domain
-	if routeCondition != nil && routeCondition.Status == corev1.ConditionTrue && receiveAdapterDomain != "" {
-		// TODO: Mark Deployed for the ksvc
-		// TODO: Mark some condition for the webhook status?
-		r.addFinalizer(source)
-		if source.Status.WebhookIDKey == "" {
-			args := &webhookArgs{
-				source:      source,
-				domain:      receiveAdapterDomain,
-				accessToken: accessToken,
-				secretToken: secretToken,
-			}
-
-			hookID, err := r.createWebhook(ctx, args)
-			if err != nil {
-				return err
-			}
-			source.Status.WebhookIDKey = hookID
+	r.addFinalizer(source)
+	receiveAdapterDomain := "xxxxxxxxxxxx"
+	if source.Status.WebhookIDKey == "" {
+		args := &webhookArgs{
+			source:      source,
+			domain:      receiveAdapterDomain,
+			accessToken: accessToken,
+			secretToken: secretToken,
 		}
+
+		hookID, err := r.createWebhook(ctx, args)
+		if err != nil {
+			return err
+		}
+		source.Status.WebhookIDKey = hookID
 	}
+
 	return nil
 }
 
@@ -232,10 +227,8 @@ func getProjectName(projectURL string) (string, error) {
 	return projectName, nil
 }
 
-func (r *reconciler) createWebhook(ctx context.Context, args *webhookArgs) (string, error) {
-	logger := logging.FromContext(ctx)
-
-	logger.Info("creating GitLab webhook")
+func (r *Reconciler) createWebhook(ctx context.Context, args *webhookArgs) (string, error) {
+	r.logger.Info("creating GitLab webhook")
 
 	hookOptions := &projectHookOptions{
 		accessToken: args.accessToken,
@@ -326,9 +319,8 @@ func (r *reconciler) deleteWebhook(ctx context.Context, args *webhookArgs) error
 	return nil
 }
 
-func (r *reconciler) secretFrom(ctx context.Context, namespace string, secretKeySelector *corev1.SecretKeySelector) (string, error) {
-	secret := &corev1.Secret{}
-	err := r.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: secretKeySelector.Name}, secret)
+func (r *Reconciler) secretFrom(ctx context.Context, namespace string, secretKeySelector *corev1.SecretKeySelector) (string, error) {
+	secret, err := r.KubeClientSet.CoreV1().Secrets(namespace).Get(secretKeySelector.Name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -339,31 +331,31 @@ func (r *reconciler) secretFrom(ctx context.Context, namespace string, secretKey
 	return string(secretVal), nil
 }
 
-func (r *reconciler) getOwnedService(ctx context.Context, source *sourcesv1alpha1.GitLabSource) (*servingv1alpha1.Service, error) {
-	list := &servingv1alpha1.ServiceList{}
+func (r *Reconciler) getOwnedReceiver(ctx context.Context, source *sourcesv1alpha1.GitLabSource) (*v1.Deployment, error) {
+	dl := &v1.DeploymentList{}
 	err := r.client.List(ctx, &client.ListOptions{
 		Namespace:     source.Namespace,
-		LabelSelector: labels.Everything(),
-		// TODO this is here because the fake client needs it.
-		// Remove this when it's no longer needed.
+		LabelSelector: r.getLabelSelector(source),
+		// TODO this is only needed by the fake client. Real K8s does not need it. Remove it once
+		// the fake is fixed.
 		Raw: &metav1.ListOptions{
 			TypeMeta: metav1.TypeMeta{
-				APIVersion: servingv1alpha1.SchemeGroupVersion.String(),
-				Kind:       "Service",
+				APIVersion: v1.SchemeGroupVersion.String(),
+				Kind:       "Deployment",
 			},
 		},
-	},
-		list)
+	}, dl)
+
 	if err != nil {
+		logging.FromContext(ctx).Desugar().Error("Unable to list deployments: %v", zap.Error(err))
 		return nil, err
 	}
-	for _, ksvc := range list.Items {
-		if metav1.IsControlledBy(&ksvc, source) {
-			//TODO if there are >1 controlled, delete all but first?
-			return &ksvc, nil
+	for _, dep := range dl.Items {
+		if metav1.IsControlledBy(&dep, source) {
+			return &dep, nil
 		}
 	}
-	return nil, apierrors.NewNotFound(servingv1alpha1.Resource("services"), "")
+	return nil, apierrors.NewNotFound(schema.GroupResource{}, "")
 }
 
 func (r *reconciler) addFinalizer(s *sourcesv1alpha1.GitLabSource) {
@@ -381,4 +373,48 @@ func (r *reconciler) removeFinalizer(s *sourcesv1alpha1.GitLabSource) {
 func (r *reconciler) InjectClient(c client.Client) error {
 	r.client = c
 	return nil
+}
+
+// GetSinkURI retrieves the sink URI from the object referenced by the given
+// ObjectReference.
+func getSinkURI(ctx context.Context, c client.Client, sink *corev1.ObjectReference, namespace string) (string, error) {
+	if sink == nil {
+		return "", fmt.Errorf("sink ref is nil")
+	}
+
+	u := &unstructured.Unstructured{}
+	u.SetGroupVersionKind(sink.GroupVersionKind())
+	err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: sink.Name}, u)
+	if err != nil {
+		return "", err
+	}
+
+	objIdentifier := fmt.Sprintf("\"%s/%s\" (%s)", u.GetNamespace(), u.GetName(), u.GroupVersionKind())
+
+	t := duckv1alpha1.AddressableType{}
+	err = duck.FromUnstructured(u, &t)
+	if err != nil {
+		return "", fmt.Errorf("failed to deserialize sink %s: %v", objIdentifier, err)
+	}
+
+	if t.Status.Address == nil {
+		return "", fmt.Errorf("sink %s does not contain address", objIdentifier)
+	}
+
+	if t.Status.Address.Hostname == "" {
+		return "", fmt.Errorf("sink %s contains an empty hostname", objIdentifier)
+	}
+
+	return fmt.Sprintf("http://%s/", t.Status.Address.Hostname), nil
+}
+
+func (r *reconciler) getLabelSelector(source *sourcesv1alpha1.GitLabSource) labels.Selector {
+	return labels.SelectorFromSet(getLabels(source))
+}
+
+func getLabels(source *sourcesv1alpha1.GitLabSource) map[string]string {
+	return map[string]string{
+		"eventing-source":      controllerAgentName,
+		"eventing-source-name": source.Name,
+	}
 }

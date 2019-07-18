@@ -28,7 +28,6 @@ import (
 	sourceclient "github.com/vincent-pli/gitlabsource/pkg/client/injection/client"
 	sourceinformer "github.com/vincent-pli/gitlabsource/pkg/client/injection/informers/sources/v1alpha1/gitlabsource"
 	"github.com/vincent-pli/gitlabsource/pkg/reconciler"
-	"github.com/vincent-pli/gitlabsource/pkg/reconciler/v1alpha1/pipelinerun/config"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"

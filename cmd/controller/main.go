@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-
 	gitlabsource "github.com/vincent-pli/gitlabsource/pkg/reconciler"
 	"knative.dev/pkg/injection/sharedmain"
 )
@@ -29,5 +28,5 @@ const (
 func main() {
 	sharedmain.Main(ControllerLogKey,
 		gitlabsource.NewController,
-    )
+	)
 }
