@@ -2,6 +2,7 @@ required = [
     "github.com/knative/test-infra/scripts",
     "github.com/knative/test-infra/tools/dep-collector",
     "k8s.io/code-generator/cmd/deepcopy-gen", # for go generate
+    "knative.dev/pkg/codegen/cmd/injection-gen",
 ]
 
 [[constraint]]
@@ -28,3 +29,8 @@ required = [
 [[override]]
   name = "k8s.io/code-generator"
   version = "kubernetes-1.12.6"
+
+[[prune.project]]
+  name = "knative.dev/pkg"
+  unused-packages = false
+  non-go = false

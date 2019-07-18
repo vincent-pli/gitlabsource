@@ -42,6 +42,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	"go.uber.org/zap"
+	"k8s.io/client-go/kubernetes"
+	clientset "github.com/vincent-pli/gitlabsource/pkg/client/clientset/versioned"
+	listers "github.com/vincent-pli/gitlabsource/pkg/client/listers/sources/v1alpha1"
+
 )
 
 const (
@@ -52,38 +58,18 @@ const (
 	finalizerName       = controllerAgentName
 )
 
-// Add creates a new GitLabSource Controller and adds it to the
-// Manager with default RBAC. The Manager will set fields on the
-// Controller and Start it when the Manager is Started.
-func Add(mgr manager.Manager, logger *zap.SugaredLogger) error {
-	receiveAdapterImage, defined := os.LookupEnv(raImageEnvVar)
-	if !defined {
-		return fmt.Errorf("required environment variable %q not defined", raImageEnvVar)
-	}
-
-	log.Println("Adding the Gitlab Source controller.")
-	p := &sdk.Provider{
-		AgentName: controllerAgentName,
-		Parent:    &sourcesv1alpha1.GitLabSource{},
-		Owns:      []runtime.Object{&servingv1alpha1.Service{}},
-		Reconciler: &reconciler{
-			recorder:            mgr.GetRecorder(controllerAgentName),
-			scheme:              mgr.GetScheme(),
-			receiveAdapterImage: receiveAdapterImage,
-			webhookClient:       gitLabWebhookClient{}, //TODO
-		},
-	}
-
-	return p.Add(mgr, logger)
-}
-
 // reconciler reconciles a GitLabSource object
-type reconciler struct {
-	client              client.Client
+type Reconciler struct {
+	KubeClientSet              kubernetes.Interface
+	sourceClientSet    clientset.Interface
+	sourceLister       listers.GitLabSourceLister
+	//TODO scheme
 	scheme              *runtime.Scheme
 	recorder            record.EventRecorder
+	logger *zap.SugaredLogger
 	receiveAdapterImage string
 	webhookClient       webhookClient
+	
 }
 
 type webhookArgs struct {
@@ -98,14 +84,28 @@ type webhookArgs struct {
 // Reconcile reads that state of the cluster for a GitLabSource
 // object and makes changes based on the state read and what is in the
 // GitLabSource.Spec
-func (r *reconciler) Reconcile(ctx context.Context, object runtime.Object) error {
-	logger := logging.FromContext(ctx)
+func (r *reconciler) Reconcile(ctx context.Context, key string) error {
+	c.Logger.Infof("Reconciling %v", time.Now())
 
-	source, ok := object.(*sourcesv1alpha1.GitLabSource)
-	if !ok {
-		logger.Errorf("could not find gitlab source %v\n", object)
+	// Convert the namespace/name string into a distinct namespace and name
+	namespace, name, err := cache.SplitMetaNamespaceKey(key)
+	if err != nil {
+		c.Logger.Errorf("invalid resource key: %s", key)
 		return nil
 	}
+
+	// Get the Pipeline Run resource with this namespace/name
+	original, err := c.sourceLister.GitLabSources(namespace).Get(name)
+	if errors.IsNotFound(err) {
+		// The resource no longer exists, in which case we stop processing.
+		c.Logger.Errorf("gitlabSource %q in work queue no longer exists", key)
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	// Don't modify the informer's copy.
+	source := original.DeepCopy()
 
 	// See if the source has been deleted
 	accessor, err := meta.Accessor(source)
@@ -115,7 +115,7 @@ func (r *reconciler) Reconcile(ctx context.Context, object runtime.Object) error
 	}
 
 	var reconcileErr error
-	if accessor.GetDeletionTimestamp() == nil {
+	if source.DeletionTimestamp == nil {
 		reconcileErr = r.reconcile(ctx, source)
 	} else {
 		reconcileErr = r.finalize(ctx, source)

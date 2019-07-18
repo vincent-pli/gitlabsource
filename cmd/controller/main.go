@@ -17,56 +17,17 @@ limitations under the License.
 package main
 
 import (
-	"log"
 
-	"github.com/vincent-pli/gitlabsource/pkg/apis"
-	controller "github.com/vincent-pli/gitlabsource/pkg/reconciler"
-	"github.com/knative/pkg/logging/logkey"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
+	gitlabsource "github.com/vincent-pli/gitlabsource/pkg/reconciler"
+	"knative.dev/pkg/injection/sharedmain"
+)
+
+const (
+	ControllerLogKey = "controller"
 )
 
 func main() {
-	// Get a config to talk to the API server
-	logCfg := zap.NewProductionConfig()
-	logCfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	logger, err := logCfg.Build()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	logger = logger.With(zap.String(logkey.ControllerType, "gitlab-controller"))
-	cfg, err := config.GetConfig()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Create a new Cmd to provide shared dependencies and start components
-	mgr, err := manager.New(cfg, manager.Options{})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Printf("Registering Components.")
-
-	// Setup Scheme for all resources
-	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
-		log.Fatal(err)
-	}
-
-	log.Printf("Setting up Controller.")
-
-	// Setup gitlab source Controller
-	if err := controller.Add(mgr, logger.Sugar()); err != nil {
-		log.Fatal(err)
-	}
-
-	log.Printf("Starting gitlab source controller.")
-
-	// Start the Cmd
-	log.Fatal(mgr.Start(signals.SetupSignalHandler()))
+	sharedmain.Main(ControllerLogKey,
+		gitlabsource.NewController,
+    )
 }
