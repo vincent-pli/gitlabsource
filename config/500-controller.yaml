@@ -31,10 +31,10 @@ spec:
       serviceAccountName: gitlab-controller-manager
       containers:
       - name: manager
-        image: github.com/knative/eventing-sources/contrib/gitlab/cmd/controller
+        image: github.com/vincent-pli/gitlabsource/cmd/controller
         env:
         - name: GL_RA_IMAGE
-          value: github.com/knative/eventing-sources/contrib/gitlab/cmd/receive_adapter
+          value: github.com/vincent-pli/gitlabsource/cmd/receive_adapter
         volumeMounts:
         resources:
           limits:
