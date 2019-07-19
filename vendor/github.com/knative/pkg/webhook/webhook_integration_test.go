@@ -28,11 +28,12 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/knative/pkg/testing"
 	"github.com/mattbaird/jsonpatch"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"knative.dev/pkg/metrics/metricstest"
+	. "knative.dev/pkg/testing"
 )
 
 const testTimeout = time.Duration(10 * time.Second)
@@ -85,6 +86,9 @@ func TestMissingContentType(t *testing.T) {
 	if !strings.Contains(string(responseBody), "invalid Content-Type") {
 		t.Errorf("Response body to contain 'invalid Content-Type' , got = '%s'", string(responseBody))
 	}
+
+	// Stats are not reported for internal server errors
+	metricstest.CheckStatsNotReported(t, requestCountName, requestLatenciesName)
 }
 
 func TestEmptyRequestBody(t *testing.T) {
@@ -179,6 +183,7 @@ func TestValidResponseForResource(t *testing.T) {
 		t.Fatalf("Failed to marshal resource: %s", err)
 	}
 
+	admissionreq.Resource.Group = "pkg.knative.dev"
 	admissionreq.Object.Raw = marshaled
 	rev := &admissionv1beta1.AdmissionReview{
 		Request: admissionreq,
@@ -217,6 +222,8 @@ func TestValidResponseForResource(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
+
+	metricstest.CheckStatsReported(t, requestCountName, requestLatenciesName)
 }
 
 func TestValidResponseForResourceWithContextDefault(t *testing.T) {
@@ -262,6 +269,7 @@ func TestValidResponseForResourceWithContextDefault(t *testing.T) {
 		t.Fatalf("Failed to marshal resource: %s", err)
 	}
 
+	admissionreq.Resource.Group = "pkg.knative.dev"
 	admissionreq.Object.Raw = marshaled
 	rev := &admissionv1beta1.AdmissionReview{
 		Request: admissionreq,
@@ -362,6 +370,7 @@ func TestInvalidResponseForResource(t *testing.T) {
 		},
 	}
 
+	admissionreq.Resource.Group = "pkg.knative.dev"
 	admissionreq.Object.Raw = marshaled
 
 	rev := &admissionv1beta1.AdmissionReview{
@@ -418,6 +427,9 @@ func TestInvalidResponseForResource(t *testing.T) {
 	if !strings.Contains(reviewResponse.Response.Result.Message, "spec.fieldWithValidation") {
 		t.Errorf("Received unexpected response status message %s", reviewResponse.Response.Result.Message)
 	}
+
+	// Stats should be reported for requests that have admission disallowed
+	metricstest.CheckStatsReported(t, requestCountName, requestLatenciesName)
 }
 
 func TestWebhookClientAuth(t *testing.T) {
@@ -465,6 +477,7 @@ func testSetup(t *testing.T) (*AdmissionController, string, error) {
 	}
 
 	createDeployment(ac)
+	resetMetrics()
 	return ac, fmt.Sprintf("0.0.0.0:%d", port), nil
 }
 

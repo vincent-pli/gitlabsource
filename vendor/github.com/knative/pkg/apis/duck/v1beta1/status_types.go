@@ -24,8 +24,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/knative/pkg/apis"
-	"github.com/knative/pkg/apis/duck"
+	"knative.dev/pkg/apis"
+	"knative.dev/pkg/apis/duck"
 )
 
 // Conditions is a simple wrapper around apis.Conditions to implement duck.Implementable.
@@ -36,6 +36,7 @@ var _ duck.Implementable = (*Conditions)(nil)
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:openapi-gen=true
 
 // KResource is a skeleton type wrapping Conditions in the manner we expect
 // resource writers defining compatible resources to embed it.  We will

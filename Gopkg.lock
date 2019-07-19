@@ -2,7 +2,7 @@
 
 
 [[projects]]
-  digest = "1:d0332b7ef01a7935d9368f08fbf5e27386eebf400be77d3cfed1314fb1531cdb"
+  digest = "1:80e5d0810f1448259385b08f381852a83f87b6c958d8500e621db821e15c3771"
   name = "cloud.google.com/go"
   packages = [
     "compute/metadata",
@@ -12,8 +12,8 @@
     "trace/apiv2",
   ]
   pruneopts = ""
-  revision = "cf81fad90a1a1de334c4fc27e23eb9a4224b627a"
-  version = "v0.41.0"
+  revision = "cdaaf98f9226c39dc162b8e55083b2fbc67b4674"
+  version = "v0.43.0"
 
 [[projects]]
   digest = "1:5d78f4afd8b9a5a02030a4a6f697ffcc82ae3c8108b3e93cb7340982d548f58f"
@@ -24,18 +24,18 @@
   version = "v0.1.0"
 
 [[projects]]
-  digest = "1:83127187e1cbeb11c01aa1401479f8950583fd2c54e6c30c97e95020fd9ab75c"
+  digest = "1:43ac7681e12a48d3ec0eebe0b6b8f01183669a6e22a6b170ed1075305480773a"
   name = "contrib.go.opencensus.io/exporter/stackdriver"
   packages = [
     ".",
     "monitoredresource",
   ]
   pruneopts = ""
-  revision = "68e3d742b03c099c35428443886e65d9587c8d76"
-  version = "v0.12.2"
+  revision = "6850d2e00d7dfe4886f7e4773bf9f05e39296d92"
+  version = "v0.12.4"
 
 [[projects]]
-  digest = "1:06a3d6c930263524e16e4c0b4b6cf461f83ffcb468864a18f537ce19a44e5de4"
+  digest = "1:ecc0a68e762acbd701df681b522f9f2cdc2fed5c7e11f7821a4bc5f669c73f28"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -68,10 +68,11 @@
     "private/protocol/rest",
     "private/protocol/xml/xmlutil",
     "service/sts",
+    "service/sts/stsiface",
   ]
   pruneopts = ""
-  revision = "420cda5d6383f94f7d9c231aa44bad3325181950"
-  version = "v1.20.20"
+  revision = "f062d235348647a0e3ed2cadb16640cf03c8acfb"
+  version = "v1.21.0"
 
 [[projects]]
   digest = "1:0d3deb8a6da8ffba5635d6fb1d2144662200def6c9d82a35a6d05d6c2d4a48f9"
@@ -82,7 +83,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:10139b9c841acd336ceff02e8a85e0c558dee738b2277bb24d61d9d3c90ef1f2"
+  digest = "1:ad70cf78ff17abf96d92a6082f4d3241fef8f149118f87c3a267ed47a08be603"
   name = "github.com/census-instrumentation/opencensus-proto"
   packages = [
     "gen-go/agent/common/v1",
@@ -90,8 +91,8 @@
     "gen-go/resource/v1",
   ]
   pruneopts = ""
-  revision = "a105b96453fe85139acc07b68de48f2cbdd71249"
-  version = "v0.2.0"
+  revision = "d89fa54de508111353cb0b06403c00569be780d8"
+  version = "v0.2.1"
 
 [[projects]]
   digest = "1:502725417249e86a000932108df22d20dbc0b74219b8745062e469057567c48f"
@@ -334,30 +335,27 @@
   version = "v0.7.1"
 
 [[projects]]
-  digest = "1:1f1ea1b91f4cb5c1e2a37e4a7962891a5aeb9b808441248fa51f249852e1eb87"
+  branch = "master"
+  digest = "1:c571b13ccf16f60d6ec73d077f87f8a9516737848d16a87d165d42979fe92755"
   name = "github.com/knative/pkg"
   packages = [
-    "apis",
     "apis/duck",
     "apis/duck/v1alpha1",
-    "changeset",
-    "kmp",
     "logging",
-    "logging/logkey",
   ]
   pruneopts = ""
-  revision = "52709ba13d9b77473fe37f2481312a62f63a7d6d"
+  revision = "83cfa18c151d1efd88783df4ef35e19f47b592a1"
 
 [[projects]]
   branch = "master"
-  digest = "1:f7b96b4442417b443f98e42e8cb0793063936bff9356b9b857ee6f8f1d78c2d6"
+  digest = "1:a2af90b72e6f9350ec254c31b696a3cc3c513f29235299ae60790286cbfcdae8"
   name = "github.com/knative/test-infra"
   packages = [
     "scripts",
     "tools/dep-collector",
   ]
   pruneopts = ""
-  revision = "81861c7c2060af68e3dbdc72bcd3a2f0584566d2"
+  revision = "34fa5432a41d597266fa09c9c2fbff7beefc47ef"
 
 [[projects]]
   branch = "master"
@@ -642,7 +640,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:d50659c2a6cc790038e2a11fcd991491c73fbf1020a7bac5b228a0b0cad21fb4"
+  digest = "1:04289d701cdbf3a68cd0eeb797d3e83c5d454920c2291cfff2446fca2b934e72"
   name = "golang.org/x/tools"
   packages = [
     "go/ast/astutil",
@@ -659,7 +657,7 @@
     "internal/semver",
   ]
   pruneopts = ""
-  revision = "e98af230987614b97d20a34f8062bf3fa0fe2376"
+  revision = "e377ae9d63860e3b8f606b92a1a7c7df5b14ca67"
 
 [[projects]]
   branch = "master"
@@ -1009,12 +1007,10 @@
     "pkg/apis/clientauthentication/v1beta1",
     "pkg/version",
     "plugin/pkg/client/auth/exec",
-    "plugin/pkg/client/auth/gcp",
     "rest",
     "rest/watch",
     "restmapper",
     "testing",
-    "third_party/forked/golang/template",
     "tools/auth",
     "tools/cache",
     "tools/clientcmd",
@@ -1034,7 +1030,6 @@
     "util/flowcontrol",
     "util/homedir",
     "util/integer",
-    "util/jsonpath",
     "util/retry",
     "util/workqueue",
   ]
@@ -1082,17 +1077,31 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:19a57835b928c382c565d46b140f60b620c8a165dd57c7abfa519f0c82381eb1"
+  digest = "1:88ee73e37397175aa884ff27fd479c1f04afaae839fad96911191909e2422083"
   name = "k8s.io/kube-openapi"
   packages = ["pkg/util/proto"]
   pruneopts = ""
-  revision = "33be087ad058f99c78e067996202b60230737e49"
+  revision = "3cf2ea39288623b60ec6ed8423a75b8e996fe289"
 
 [[projects]]
   branch = "master"
-  digest = "1:fd362ba517bfa782235b23c980d4ace6349a184d015a1523b1509de6a798b910"
+  digest = "1:873bdcd6692414a988a979f0d81f1f4a63927c2c9e09819a0d424f621357e9d6"
+  name = "knative.dev/caching"
+  packages = [
+    "pkg/apis/caching",
+    "pkg/apis/caching/v1alpha1",
+  ]
+  pruneopts = ""
+  revision = "5c6bfd657c73d4f632ce38b467913dd4dc84d00f"
+
+[[projects]]
+  branch = "master"
+  digest = "1:c571b13ccf16f60d6ec73d077f87f8a9516737848d16a87d165d42979fe92755"
   name = "knative.dev/pkg"
   packages = [
+    "apis",
+    "apis/duck",
+    "apis/duck/v1beta1",
     "changeset",
     "codegen/cmd/injection-gen",
     "codegen/cmd/injection-gen/args",
@@ -1100,14 +1109,20 @@
     "configmap",
     "controller",
     "injection",
+    "injection/clients/kubeclient",
+    "injection/sharedmain",
     "kmeta",
+    "kmp",
     "logging",
     "logging/logkey",
     "metrics",
     "metrics/metricskey",
+    "signals",
+    "system",
+    "tracker",
   ]
   pruneopts = ""
-  revision = "7a85e28f40120b4c632c0e7965fcbc768a52478c"
+  revision = "83cfa18c151d1efd88783df4ef35e19f47b592a1"
 
 [[projects]]
   digest = "1:710d4000db1c1e3e3b11b17ffe92a8bebb29ea01e12c46070b360648db0f8742"
@@ -1117,7 +1132,6 @@
     "pkg/cache/internal",
     "pkg/client",
     "pkg/client/apiutil",
-    "pkg/client/config",
     "pkg/controller/controllerutil",
     "pkg/internal/recorder",
     "pkg/leaderelection",
@@ -1128,7 +1142,6 @@
     "pkg/runtime/inject",
     "pkg/runtime/log",
     "pkg/runtime/scheme",
-    "pkg/runtime/signals",
     "pkg/webhook/admission",
     "pkg/webhook/admission/types",
     "pkg/webhook/internal/metrics",
@@ -1152,13 +1165,12 @@
     "github.com/knative/pkg/apis/duck",
     "github.com/knative/pkg/apis/duck/v1alpha1",
     "github.com/knative/pkg/logging",
-    "github.com/knative/pkg/logging/logkey",
     "github.com/knative/test-infra/scripts",
     "github.com/knative/test-infra/tools/dep-collector",
     "github.com/xanzy/go-gitlab",
     "go.uber.org/zap",
-    "go.uber.org/zap/zapcore",
     "gopkg.in/go-playground/webhooks.v5/gitlab",
+    "k8s.io/api/apps/v1",
     "k8s.io/api/core/v1",
     "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/api/meta",
@@ -1174,24 +1186,28 @@
     "k8s.io/apimachinery/pkg/watch",
     "k8s.io/client-go/discovery",
     "k8s.io/client-go/discovery/fake",
+    "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/kubernetes/scheme",
-    "k8s.io/client-go/plugin/pkg/client/auth/gcp",
+    "k8s.io/client-go/kubernetes/typed/core/v1",
     "k8s.io/client-go/rest",
     "k8s.io/client-go/testing",
     "k8s.io/client-go/tools/cache",
     "k8s.io/client-go/tools/record",
     "k8s.io/client-go/util/flowcontrol",
     "k8s.io/code-generator/cmd/deepcopy-gen",
+    "knative.dev/caching/pkg/apis/caching/v1alpha1",
     "knative.dev/pkg/codegen/cmd/injection-gen",
+    "knative.dev/pkg/configmap",
     "knative.dev/pkg/controller",
     "knative.dev/pkg/injection",
+    "knative.dev/pkg/injection/clients/kubeclient",
+    "knative.dev/pkg/injection/sharedmain",
     "knative.dev/pkg/logging",
+    "knative.dev/pkg/tracker",
     "sigs.k8s.io/controller-runtime/pkg/client",
-    "sigs.k8s.io/controller-runtime/pkg/client/config",
     "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil",
     "sigs.k8s.io/controller-runtime/pkg/manager",
     "sigs.k8s.io/controller-runtime/pkg/runtime/scheme",
-    "sigs.k8s.io/controller-runtime/pkg/runtime/signals",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -31,8 +31,8 @@ These flags are useful for running against an existing cluster, making use of
 your existing
 [environment setup](https://github.com/knative/serving/blob/master/DEVELOPMENT.md#environment-setup).
 
-By importing `github.com/knative/pkg/test` you get access to a global variable
-called `test.Flags` which holds the values of
+By importing `knative.dev/pkg/test` you get access to a global variable called
+`test.Flags` which holds the values of
 [the command line flags](/test/README.md#flags).
 
 ```go
@@ -93,7 +93,7 @@ When a `trace` metric is emitted, the format is
 arbitrary and can be any string. The values are:
 
 - `metric` - Indicates this log is a metric
-- `<name>` - Arbitrary string indentifying the metric
+- `<name>` - Arbitrary string identifying the metric
 - `<startTime>` - Unix time in nanoseconds when measurement started
 - `<endTime>` - Unix time in nanoseconds when measurement ended
 - `<duration>` - The difference in ms between the startTime and endTime
@@ -170,8 +170,7 @@ _See [cleanup.go](./cleanup.go)._
 Importing [the test library](#test-library) adds flags that are useful for end
 to end tests that need to run against a cluster.
 
-Tests importing [`github.com/knative/pkg/test`](#test-library) recognize these
-flags:
+Tests importing [`knative.dev/pkg/test`](#test-library) recognize these flags:
 
 - [`--kubeconfig`](#specifying-kubeconfig)
 - [`--cluster`](#specifying-cluster)

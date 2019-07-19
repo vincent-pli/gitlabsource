@@ -19,7 +19,8 @@ package v1alpha1
 import (
 	"testing"
 
-	"github.com/knative/pkg/apis/duck"
+	"knative.dev/pkg/apis/duck"
+	"knative.dev/pkg/apis/duck/v1beta1"
 )
 
 func TestTypesImplements(t *testing.T) {
@@ -28,6 +29,7 @@ func TestTypesImplements(t *testing.T) {
 		iface    duck.Implementable
 	}{
 		{instance: &AddressableType{}, iface: &Addressable{}},
+		{instance: &AddressableType{}, iface: &v1beta1.Addressable{}},
 		{instance: &KResource{}, iface: &Conditions{}},
 		{instance: &LegacyTarget{}, iface: &LegacyTargetable{}},
 		{instance: &Target{}, iface: &Targetable{}},

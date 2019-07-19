@@ -19,25 +19,29 @@ package gitlabsource
 import (
 	"context"
 	"time"
+	"os"
 
-	"github.com/knative/pkg/configmap"
-	"github.com/knative/pkg/controller"
-	"github.com/knative/pkg/injection/clients/kubeclient"
-	"github.com/knative/pkg/logging"
-	"github.com/knative/pkg/tracker"
+
+	"knative.dev/pkg/configmap"
+	"knative.dev/pkg/controller"
+	"knative.dev/pkg/injection/clients/kubeclient"
+	"knative.dev/pkg/logging"
 	sourceclient "github.com/vincent-pli/gitlabsource/pkg/client/injection/client"
 	sourceinformer "github.com/vincent-pli/gitlabsource/pkg/client/injection/informers/sources/v1alpha1/gitlabsource"
-	"github.com/vincent-pli/gitlabsource/pkg/reconciler"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
 	resyncPeriod = 10 * time.Hour
-	controllerAgentName = "gitlab-source-controller"
+	controllerAgentName = "gitlab-source-controller"	
+)
+
+var (
+	scheme              = runtime.NewScheme()
 )
 
 func NewController(
@@ -51,23 +55,29 @@ func NewController(
 
 	receiveAdapterImage, defined := os.LookupEnv(raImageEnvVar)
 	if !defined {
-		return fmt.Errorf("required environment variable %q not defined", raImageEnvVar)
+		logger.Errorf("required environment variable %q not defined", raImageEnvVar)
+		return nil
 	}
+	// Create event broadcaster
+	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartLogging(logger.Named("event-broadcaster").Infof)
+	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeclientset.CoreV1().Events("")})
+	recorder := eventBroadcaster.NewRecorder(scheme, corev1.EventSource{Component: controllerAgentName})
 
 	c := &Reconciler{
 		KubeClientSet:  kubeclientset,
 		sourceClientSet:  sourceclientset,
-		recorder:       createRecord(),     
-		scheme:   
+		recorder:       recorder,
+		scheme:         scheme,
 		sourceLister:  sourceInformer.Lister(),      
 		receiveAdapterImage: receiveAdapterImage,
 		logger:        logger,
 		webhookClient:       gitLabWebhookClient{}, //TODO
-	},
+	}
 
-	impl := controller.NewImpl(c, c.Logger, controllerAgentName)
+	impl := controller.NewImpl(c, c.logger, controllerAgentName)
 
-	c.Logger.Info("Setting up event handlers")
+	c.logger.Info("Setting up event handlers")
 	sourceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    impl.Enqueue,
 		UpdateFunc: controller.PassNew(impl.Enqueue),
@@ -75,15 +85,4 @@ func NewController(
 	})
 
 	return impl
-}
-
-func createRecord() record.EventRecorder {
-	// Create event broadcaster
-	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(logger.Named("event-broadcaster").Infof)
-	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: opt.KubeClientSet.CoreV1().Events("")})
-
-	recorder = eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerAgentName})
-	 
-	return recorder
 }

@@ -29,7 +29,7 @@ func MakeReceiveAdapter(source *sourcesv1alpha1.GitLabSource, receiveAdapterImag
 	replicas := int32(1)
 	labels := map[string]string{
 		"eventing-source": "gitlab-source-controller",
-		"eventing-source-name": source.Name
+		"eventing-source-name": source.Name,
 	}
 	sinkURI := source.Status.SinkURI
 	env := []corev1.EnvVar{

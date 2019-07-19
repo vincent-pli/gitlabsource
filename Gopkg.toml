@@ -3,6 +3,7 @@ required = [
     "github.com/knative/test-infra/tools/dep-collector",
     "k8s.io/code-generator/cmd/deepcopy-gen", # for go generate
     "knative.dev/pkg/codegen/cmd/injection-gen",
+    "knative.dev/caching/pkg/apis/caching/v1alpha1",
 ]
 
 [[constraint]]
@@ -13,10 +14,9 @@ required = [
   name = "k8s.io/api"
   version = "kubernetes-1.12.6"
 
-[[override]]
-  name = "github.com/knative/pkg"
-  # HEAD as of 2019-04-26
-  revision = "52709ba13d9b77473fe37f2481312a62f63a7d6d"
+[[constraint]]
+  name = "knative.dev/pkg"
+  branch = "master"
 
 [[override]]
   name = "k8s.io/apimachinery"

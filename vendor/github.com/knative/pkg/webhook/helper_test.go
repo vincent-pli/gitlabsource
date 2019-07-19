@@ -30,7 +30,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 
-	. "github.com/knative/pkg/logging/testing"
+	. "knative.dev/pkg/logging/testing"
+	. "knative.dev/pkg/testing"
 )
 
 func waitForServerAvailable(t *testing.T, serverURL string, timeout time.Duration) error {
@@ -116,4 +117,16 @@ func createSecureTLSClient(t *testing.T, kubeClient kubernetes.Interface, acOpts
 			TLSClientConfig: tlsClientConfig,
 		},
 	}, nil
+}
+
+func createResource(name string) *Resource {
+	return &Resource{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: testNamespace,
+			Name:      name,
+		},
+		Spec: ResourceSpec{
+			FieldWithValidation: "magic value",
+		},
+	}
 }

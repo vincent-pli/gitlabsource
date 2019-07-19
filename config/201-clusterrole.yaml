@@ -23,7 +23,6 @@ rules:
   resources:
   - gitlabsources
   - gitlabsources/finalizers
-  - services
   verbs: &everything
   - get
   - list
@@ -37,7 +36,6 @@ rules:
   - sources.eventing.knative.dev
   resources:
   - gitlabsources/status
-  - services
   verbs:
   - get
   - update

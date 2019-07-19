@@ -18,11 +18,12 @@ package apis_test
 
 import (
 	"context"
-	"github.com/knative/pkg/apis"
-	"github.com/knative/pkg/ptr"
-	. "github.com/knative/pkg/testing"
 	"strings"
 	"testing"
+
+	"knative.dev/pkg/apis"
+	"knative.dev/pkg/ptr"
+	. "knative.dev/pkg/testing"
 )
 
 func TestCheckDeprecated(t *testing.T) {

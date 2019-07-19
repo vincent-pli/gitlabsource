@@ -25,14 +25,13 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/knative/pkg/controller"
-	"github.com/knative/pkg/kmeta"
-	_ "github.com/knative/pkg/system/testing" // Setup system.Namespace()
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
+	"knative.dev/pkg/controller"
+	"knative.dev/pkg/kmeta"
+	_ "knative.dev/pkg/system/testing" // Setup system.Namespace()
 )
 
 // TableRow holds a single row of our table test.
@@ -54,7 +53,7 @@ type TableRow struct {
 	WantErr bool
 
 	// WantCreates holds the ordered list of Create calls we expect during reconciliation.
-	WantCreates []metav1.Object
+	WantCreates []runtime.Object
 
 	// WantUpdates holds the ordered list of Update calls we expect during reconciliation.
 	WantUpdates []clientgotesting.UpdateActionImpl
@@ -264,9 +263,8 @@ func (r *TableRow) Test(t *testing.T, factory Factory) {
 		if got, want := got.GetListRestrictions().Labels, want.GetListRestrictions().Labels; (got != nil) != (want != nil) || got.String() != want.String() {
 			t.Errorf("Unexpected delete-collection[%d].Labels = %v, wanted %v", i, got, want)
 		}
-		// TODO(mattmoor): Add this if/when we need support.
-		if got := got.GetListRestrictions().Fields; got.String() != "" {
-			t.Errorf("Unexpected delete-collection[%d].Fields = %v, wanted ''", i, got)
+		if got, want := got.GetListRestrictions().Fields, want.GetListRestrictions().Fields; (got != nil) != (want != nil) || got.String() != want.String() {
+			t.Errorf("Unexpected delete-collection[%d].Fields = %v, wanted %v", i, got, want)
 		}
 		if !r.SkipNamespaceValidation && got.GetNamespace() != expectedNamespace {
 			t.Errorf("Unexpected delete-collection[%d]: %#v, wanted %s", i, got, expectedNamespace)

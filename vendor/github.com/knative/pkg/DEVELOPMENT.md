@@ -45,9 +45,8 @@ export PATH="${PATH}:${GOPATH}/bin"
 
 ### Checkout your fork
 
-The Go tools require that you clone the repository to the
-`src/github.com/knative/pkg` directory in your
-[`GOPATH`](https://github.com/golang/go/wiki/SettingGOPATH).
+The Go tools require that you clone the repository to the `src/knative.dev/pkg`
+directory in your [`GOPATH`](https://github.com/golang/go/wiki/SettingGOPATH).
 
 To check out this repository:
 
@@ -56,8 +55,8 @@ To check out this repository:
 1. Clone it to your machine:
 
 ```shell
-mkdir -p ${GOPATH}/src/github.com/knative
-cd ${GOPATH}/src/github.com/knative
+mkdir -p ${GOPATH}/src/knative.dev
+cd ${GOPATH}/src/knative.dev
 git clone git@github.com:${YOUR_GITHUB_USERNAME}/pkg.git
 cd pkg
 git remote add upstream git@github.com:knative/pkg.git

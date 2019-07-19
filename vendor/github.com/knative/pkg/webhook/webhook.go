@@ -31,11 +31,11 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/knative/pkg/apis"
-	"github.com/knative/pkg/apis/duck"
-	"github.com/knative/pkg/kmp"
-	"github.com/knative/pkg/logging"
-	"github.com/knative/pkg/logging/logkey"
+	"knative.dev/pkg/apis"
+	"knative.dev/pkg/apis/duck"
+	"knative.dev/pkg/kmp"
+	"knative.dev/pkg/logging"
+	"knative.dev/pkg/logging/logkey"
 
 	"github.com/markbates/inflect"
 	"github.com/mattbaird/jsonpatch"
@@ -99,6 +99,10 @@ type ControllerOptions struct {
 	// TLS Client Authentication.
 	// The default value is tls.NoClientCert.
 	ClientAuth tls.ClientAuthType
+
+	// StatsReporter reports metrics about the webhook.
+	// This will be automatically initialized by the constructor if left uninitialized.
+	StatsReporter StatsReporter
 }
 
 // ResourceCallback defines a signature for resource specific (Route, Configuration, etc.)
@@ -133,6 +137,33 @@ type GenericCRD interface {
 	apis.Defaultable
 	apis.Validatable
 	runtime.Object
+}
+
+// NewAdmissionController constructs an AdmissionController
+func NewAdmissionController(
+	client kubernetes.Interface,
+	opts ControllerOptions,
+	handlers map[schema.GroupVersionKind]GenericCRD,
+	logger *zap.SugaredLogger,
+	ctx func(context.Context) context.Context,
+	disallowUnknownFields bool) (*AdmissionController, error) {
+
+	if opts.StatsReporter == nil {
+		reporter, err := NewStatsReporter()
+		if err != nil {
+			return nil, err
+		}
+		opts.StatsReporter = reporter
+	}
+
+	return &AdmissionController{
+		Client:                client,
+		Options:               opts,
+		Handlers:              handlers,
+		Logger:                logger,
+		WithContext:           ctx,
+		DisallowUnknownFields: disallowUnknownFields,
+	}, nil
 }
 
 // GetAPIServerExtensionCACert gets the Kubernetes aggregate apiserver
@@ -333,7 +364,7 @@ func (ac *AdmissionController) register(
 			Rule: admissionregistrationv1beta1.Rule{
 				APIGroups:   []string{gvk.Group},
 				APIVersions: []string{gvk.Version},
-				Resources:   []string{plural},
+				Resources:   []string{plural + "/*"},
 			},
 		})
 	}
@@ -408,6 +439,7 @@ func (ac *AdmissionController) register(
 // ServeHTTP implements the external admission webhook for mutating
 // serving resources.
 func (ac *AdmissionController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var ttStart = time.Now()
 	logger := ac.Logger
 	logger.Infof("Webhook ServeHTTP request=%#v", r)
 
@@ -451,6 +483,11 @@ func (ac *AdmissionController) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, fmt.Sprintf("could encode response: %v", err), http.StatusInternalServerError)
 		return
+	}
+
+	if ac.Options.StatsReporter != nil {
+		// Only report valid requests
+		ac.Options.StatsReporter.ReportRequest(review.Request, response.Response, time.Since(ttStart))
 	}
 }
 
@@ -550,7 +587,16 @@ func (ac *AdmissionController) mutate(ctx context.Context, req *admissionv1beta1
 		oldObj = oldObj.DeepCopyObject().(GenericCRD)
 		oldObj.SetDefaults(ctx)
 
-		ctx = apis.WithinUpdate(ctx, oldObj)
+		s, ok := oldObj.(apis.HasSpec)
+		if ok {
+			SetUserInfoAnnotations(s, ctx, req.Resource.Group)
+		}
+
+		if req.SubResource == "" {
+			ctx = apis.WithinUpdate(ctx, oldObj)
+		} else {
+			ctx = apis.WithinSubResourceUpdate(ctx, oldObj, req.SubResource)
+		}
 	} else {
 		ctx = apis.WithinCreate(ctx)
 	}
@@ -561,6 +607,11 @@ func (ac *AdmissionController) mutate(ctx context.Context, req *admissionv1beta1
 		logger.Errorw("Failed the resource specific defaulter", zap.Error(err))
 		// Return the error message as-is to give the defaulter callback
 		// discretion over (our portion of) the message that the user sees.
+		return nil, err
+	}
+
+	if patches, err = ac.setUserInfoAnnotations(ctx, patches, newObj, req.Resource.Group); err != nil {
+		logger.Errorw("Failed the resource user info annotator", zap.Error(err))
 		return nil, err
 	}
 
@@ -576,6 +627,26 @@ func (ac *AdmissionController) mutate(ctx context.Context, req *admissionv1beta1
 	}
 
 	return json.Marshal(patches)
+}
+
+func (ac *AdmissionController) setUserInfoAnnotations(ctx context.Context, patches duck.JSONPatch, new GenericCRD, groupName string) (duck.JSONPatch, error) {
+	if new == nil {
+		return patches, nil
+	}
+	nh, ok := new.(apis.HasSpec)
+	if !ok {
+		return patches, nil
+	}
+
+	b, a := new.DeepCopyObject().(apis.HasSpec), nh
+
+	SetUserInfoAnnotations(nh, ctx, groupName)
+
+	patch, err := duck.CreatePatch(b, a)
+	if err != nil {
+		return nil, err
+	}
+	return append(patches, patch...), nil
 }
 
 // roundTripPatch generates the JSONPatch that corresponds to round tripping the given bytes through

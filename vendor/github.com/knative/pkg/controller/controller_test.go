@@ -27,11 +27,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 
-	. "github.com/knative/pkg/controller/testing"
-	. "github.com/knative/pkg/logging/testing"
-	. "github.com/knative/pkg/testing"
+	. "knative.dev/pkg/controller/testing"
+	. "knative.dev/pkg/logging/testing"
+	. "knative.dev/pkg/testing"
 )
 
 func TestPassNew(t *testing.T) {
@@ -45,6 +46,21 @@ func TestPassNew(t *testing.T) {
 	})(old, new)
 }
 
+func TestHandleAll(t *testing.T) {
+	old := "foo"
+	new := "bar"
+
+	ha := HandleAll(func(got interface{}) {
+		if new != got.(string) {
+			t.Errorf("HandleAll() = %v, wanted %v", got, new)
+		}
+	})
+
+	ha.OnAdd(new)
+	ha.OnUpdate(old, new)
+	ha.OnDelete(new)
+}
+
 var (
 	boolTrue  = true
 	boolFalse = false
@@ -54,6 +70,69 @@ var (
 		Kind:    "Parent",
 	}
 )
+
+func TestFilterWithNameAndNamespace(t *testing.T) {
+	filter := FilterWithNameAndNamespace("test-namespace", "test-name")
+
+	tests := []struct {
+		name  string
+		input interface{}
+		want  bool
+	}{{
+		name:  "not a metav1.Object",
+		input: "foo",
+		want:  false,
+	}, {
+		name:  "nil",
+		input: nil,
+		want:  false,
+	}, {
+		name: "name matches, namespace does not",
+		input: &Resource{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-name",
+				Namespace: "wrong-namespace",
+			},
+		},
+		want: false,
+	}, {
+		name: "namespace matches, name does not",
+		input: &Resource{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "wrong-name",
+				Namespace: "test-namespace",
+			},
+		},
+		want: false,
+	}, {
+		name: "neither matches",
+		input: &Resource{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "wrong-name",
+				Namespace: "wrong-namespace",
+			},
+		},
+		want: false,
+	}, {
+		name: "matches",
+		input: &Resource{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-name",
+				Namespace: "test-namespace",
+			},
+		},
+		want: true,
+	}}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := filter(test.input)
+			if test.want != got {
+				t.Errorf("FilterWithNameAndNamespace() = %v, wanted %v", got, test.want)
+			}
+		})
+	}
+}
 
 func TestFilter(t *testing.T) {
 	filter := Filter(gvk)
@@ -403,7 +482,8 @@ func TestEnqueues(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			impl := NewImpl(&NopReconciler{}, TestLogger(t), "Testing", &FakeStatsReporter{})
+			defer ClearAll()
+			impl := NewImplWithStats(&NopReconciler{}, TestLogger(t), "Testing", &FakeStatsReporter{})
 			test.work(impl)
 
 			// The rate limit on our queue delays when things are added to the queue.
@@ -415,6 +495,63 @@ func TestEnqueues(t *testing.T) {
 				t.Errorf("unexpected queue (-want +got): %s", diff)
 			}
 		})
+	}
+}
+
+func TestEnqeueAfter(t *testing.T) {
+	defer ClearAll()
+	impl := NewImplWithStats(&NopReconciler{}, TestLogger(t), "Testing", &FakeStatsReporter{})
+	impl.EnqueueAfter(&Resource{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "for",
+			Namespace: "waiting",
+		},
+	}, 5*time.Second)
+	impl.EnqueueAfter(&Resource{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "waterfall",
+			Namespace: "the",
+		},
+	}, 500*time.Millisecond)
+	impl.EnqueueAfter(&Resource{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "to",
+			Namespace: "fall",
+		},
+	}, 20*time.Second)
+	time.Sleep(10 * time.Millisecond)
+	if got, want := impl.WorkQueue.Len(), 0; got != want {
+		t.Errorf("|Queue| = %d, want: %d", got, want)
+	}
+	// Sleep the remaining time.
+	time.Sleep(time.Second)
+	if got, want := impl.WorkQueue.Len(), 1; got != want {
+		t.Errorf("|Queue| = %d, want: %d", got, want)
+	}
+	impl.WorkQueue.ShutDown()
+	if got, want := drainWorkQueue(impl.WorkQueue), []string{"the/waterfall"}; !cmp.Equal(got, want) {
+		t.Errorf("Queue = %v, want: %v, diff: %s", got, want, cmp.Diff(got, want))
+	}
+}
+
+func TestEnqeueKeyAfter(t *testing.T) {
+	defer ClearAll()
+	impl := NewImplWithStats(&NopReconciler{}, TestLogger(t), "Testing", &FakeStatsReporter{})
+	impl.EnqueueKeyAfter("waiting/for", 5*time.Second)
+	impl.EnqueueKeyAfter("the/waterfall", 500*time.Millisecond)
+	impl.EnqueueKeyAfter("to/fall", 20*time.Second)
+	time.Sleep(10 * time.Millisecond)
+	if got, want := impl.WorkQueue.Len(), 0; got != want {
+		t.Errorf("|Queue| = %d, want: %d", got, want)
+	}
+	// Sleep the remaining time.
+	time.Sleep(time.Second)
+	if got, want := impl.WorkQueue.Len(), 1; got != want {
+		t.Errorf("|Queue| = %d, want: %d", got, want)
+	}
+	impl.WorkQueue.ShutDown()
+	if got, want := drainWorkQueue(impl.WorkQueue), []string{"the/waterfall"}; !cmp.Equal(got, want) {
+		t.Errorf("Queue = %v, want: %v, diff: %s", got, want, cmp.Diff(got, want))
 	}
 }
 
@@ -431,8 +568,9 @@ func (cr *CountingReconciler) Reconcile(context.Context, string) error {
 }
 
 func TestStartAndShutdown(t *testing.T) {
+	defer ClearAll()
 	r := &CountingReconciler{}
-	impl := NewImpl(r, TestLogger(t), "Testing", &FakeStatsReporter{})
+	impl := NewImplWithStats(r, TestLogger(t), "Testing", &FakeStatsReporter{})
 
 	stopCh := make(chan struct{})
 	doneCh := make(chan struct{})
@@ -463,9 +601,10 @@ func TestStartAndShutdown(t *testing.T) {
 }
 
 func TestStartAndShutdownWithWork(t *testing.T) {
+	defer ClearAll()
 	r := &CountingReconciler{}
 	reporter := &FakeStatsReporter{}
-	impl := NewImpl(r, TestLogger(t), "Testing", reporter)
+	impl := NewImplWithStats(r, TestLogger(t), "Testing", reporter)
 
 	stopCh := make(chan struct{})
 	doneCh := make(chan struct{})
@@ -509,9 +648,10 @@ func (er *ErrorReconciler) Reconcile(context.Context, string) error {
 }
 
 func TestStartAndShutdownWithErroringWork(t *testing.T) {
+	defer ClearAll()
 	r := &ErrorReconciler{}
 	reporter := &FakeStatsReporter{}
-	impl := NewImpl(r, TestLogger(t), "Testing", reporter)
+	impl := NewImplWithStats(r, TestLogger(t), "Testing", reporter)
 
 	stopCh := make(chan struct{})
 	doneCh := make(chan struct{})
@@ -520,33 +660,39 @@ func TestStartAndShutdownWithErroringWork(t *testing.T) {
 
 	go func() {
 		defer close(doneCh)
+		// StartAll blocks until all the worker threads finish, which shouldn't
+		// be until we close stopCh.
 		StartAll(stopCh, impl)
 	}()
 
 	select {
-	case <-time.After(20 * time.Millisecond):
-		// We don't expect completion before the stopCh closes.
+	case <-time.After(1 * time.Second):
+		// We don't expect completion before the stopCh closes,
+		// but the workers should spin on the erroring work.
+
 	case <-doneCh:
 		t.Error("StartAll finished early.")
 	}
+
+	// By closing the stopCh all the workers should complete and
+	// we should close the doneCh.
 	close(stopCh)
 
 	select {
 	case <-time.After(1 * time.Second):
 		t.Error("Timed out waiting for controller to finish.")
 	case <-doneCh:
-		// We expect the work to complete.
+		// We expect any outstanding work to complete, for the worker
+		// threads to complete and for doneCh to close in a timely manner.
 	}
 
 	// Check that the work was requeued in RateLimiter.
 	// As NumRequeues can't fully reflect the real state of queue length.
 	// Here we need to wait for NumRequeues to be more than 1, to ensure
 	// the key get re-queued and reprocessed as expect.
-	if got, want := impl.WorkQueue.NumRequeues("foo/bar"), 3; got != want {
-		t.Errorf("Requeue count = %v, wanted %v", got, want)
+	if got, wantAtLeast := impl.WorkQueue.NumRequeues("foo/bar"), 2; got < wantAtLeast {
+		t.Errorf("Requeue count = %v, wanted at least %v", got, wantAtLeast)
 	}
-
-	checkStats(t, reporter, 3, 0, 3, falseString)
 }
 
 type PermanentErrorReconciler struct{}
@@ -557,9 +703,10 @@ func (er *PermanentErrorReconciler) Reconcile(context.Context, string) error {
 }
 
 func TestStartAndShutdownWithPermanentErroringWork(t *testing.T) {
+	defer ClearAll()
 	r := &PermanentErrorReconciler{}
 	reporter := &FakeStatsReporter{}
-	impl := NewImpl(r, TestLogger(t), "Testing", reporter)
+	impl := NewImplWithStats(r, TestLogger(t), "Testing", reporter)
 
 	stopCh := make(chan struct{})
 	doneCh := make(chan struct{})
@@ -629,8 +776,9 @@ func (*dummyStore) List() []interface{} {
 }
 
 func TestImplGlobalResync(t *testing.T) {
+	defer ClearAll()
 	r := &CountingReconciler{}
-	impl := NewImpl(r, TestLogger(t), "Testing", &FakeStatsReporter{})
+	impl := NewImplWithStats(r, TestLogger(t), "Testing", &FakeStatsReporter{})
 
 	stopCh := make(chan struct{})
 	doneCh := make(chan struct{})
@@ -781,5 +929,39 @@ func TestStartInformersFailure(t *testing.T) {
 		}
 	case <-time.After(1 * time.Second):
 		t.Error("Timed out waiting for informers to sync.")
+	}
+}
+
+func TestGetResyncPeriod(t *testing.T) {
+	ctx := context.Background()
+
+	if got := GetResyncPeriod(ctx); got != DefaultResyncPeriod {
+		t.Errorf("GetResyncPeriod() = %v, wanted %v", got, nil)
+	}
+
+	bob := 30 * time.Second
+	ctx = WithResyncPeriod(ctx, bob)
+
+	if want, got := bob, GetResyncPeriod(ctx); got != want {
+		t.Errorf("GetResyncPeriod() = %v, wanted %v", got, want)
+	}
+
+	tribob := 90 * time.Second
+	if want, got := tribob, GetTrackerLease(ctx); got != want {
+		t.Errorf("GetTrackerLease() = %v, wanted %v", got, want)
+	}
+}
+
+func TestGetEventRecorder(t *testing.T) {
+	ctx := context.Background()
+
+	if got := GetEventRecorder(ctx); got != nil {
+		t.Errorf("GetEventRecorder() = %v, wanted nil", got)
+	}
+
+	ctx = WithEventRecorder(ctx, record.NewFakeRecorder(1000))
+
+	if got := GetEventRecorder(ctx); got == nil {
+		t.Error("GetEventRecorder() = nil, wanted non-nil")
 	}
 }

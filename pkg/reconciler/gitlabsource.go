@@ -19,10 +19,9 @@ package gitlabsource
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/url"
-	"os"
 	"strings"
+	"time"
 
 	sourcesv1alpha1 "github.com/vincent-pli/gitlabsource/pkg/apis/sources/v1alpha1"
 	"github.com/vincent-pli/gitlabsource/pkg/reconciler/resources"
@@ -37,21 +36,22 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-
-	"go.uber.org/zap"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"	
 	"k8s.io/client-go/kubernetes"
 	clientset "github.com/vincent-pli/gitlabsource/pkg/client/clientset/versioned"
 	listers "github.com/vincent-pli/gitlabsource/pkg/client/listers/sources/v1alpha1"
 	v1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	duckv1alpha1 "github.com/knative/pkg/apis/duck/v1alpha1"
+	"github.com/knative/pkg/apis/duck"
 )
 
 const (
 	// controllerAgentName is the string used by this controller to identify
 	// itself when creating events.
-	controllerAgentName = "gitlab-source-controller"
 	raImageEnvVar       = "GL_RA_IMAGE"
 	finalizerName       = controllerAgentName
 )
@@ -84,20 +84,20 @@ type webhookArgs struct {
 // object and makes changes based on the state read and what is in the
 // GitLabSource.Spec
 func (r *Reconciler) Reconcile(ctx context.Context, key string) error {
-	c.Logger.Infof("Reconciling %v", time.Now())
+	r.logger.Infof("Reconciling %v", time.Now())
 
 	// Convert the namespace/name string into a distinct namespace and name
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
-		c.Logger.Errorf("invalid resource key: %s", key)
+		r.logger.Errorf("invalid resource key: %s", key)
 		return nil
 	}
 
 	// Get the Pipeline Run resource with this namespace/name
-	original, err := c.sourceLister.GitLabSources(namespace).Get(name)
+	original, err := r.sourceLister.GitLabSources(namespace).Get(name)
 	if errors.IsNotFound(err) {
 		// The resource no longer exists, in which case we stop processing.
-		c.Logger.Errorf("gitlabSource %q in work queue no longer exists", key)
+		r.logger.Errorf("gitlabSource %q in work queue no longer exists", key)
 		return nil
 	} else if err != nil {
 		return err
@@ -109,12 +109,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, key string) error {
 	// See if the source has been deleted
 	accessor, err := meta.Accessor(source)
 	if err != nil {
-		logger.Warnf("Failed to get metadata accessor: %s", zap.Error(err))
+		r.logger.Warnf("Failed to get metadata accessor: %s", zap.Error(err))
 		return err
 	}
 
 	var reconcileErr error
-	if source.DeletionTimestamp == nil {
+	if accessor.GetDeletionTimestamp() == nil {
 		reconcileErr = r.reconcile(ctx, source)
 	} else {
 		reconcileErr = r.finalize(ctx, source)
@@ -184,7 +184,7 @@ func (r *Reconciler) reconcile(ctx context.Context, source *sourcesv1alpha1.GitL
 	return nil
 }
 
-func (r *reconciler) finalize(ctx context.Context, source *sourcesv1alpha1.GitLabSource) error {
+func (r *Reconciler) finalize(ctx context.Context, source *sourcesv1alpha1.GitLabSource) error {
 	// Always remove the finalizer. If there's a failure cleaning up, an event
 	// will be recorded allowing the webhook to be removed manually by the
 	// operator.
@@ -293,7 +293,7 @@ func getGitlabBaseURL(projectURL string) (string, error) {
 	return baseurl, nil
 }
 
-func (r *reconciler) deleteWebhook(ctx context.Context, args *webhookArgs) error {
+func (r *Reconciler) deleteWebhook(ctx context.Context, args *webhookArgs) error {
 	logger := logging.FromContext(ctx)
 
 	logger.Info("deleting GitLab webhook")
@@ -358,19 +358,19 @@ func (r *Reconciler) getOwnedReceiver(ctx context.Context, source *sourcesv1alph
 	return nil, apierrors.NewNotFound(schema.GroupResource{}, "")
 }
 
-func (r *reconciler) addFinalizer(s *sourcesv1alpha1.GitLabSource) {
+func (r *Reconciler) addFinalizer(s *sourcesv1alpha1.GitLabSource) {
 	finalizers := sets.NewString(s.Finalizers...)
 	finalizers.Insert(finalizerName)
 	s.Finalizers = finalizers.List()
 }
 
-func (r *reconciler) removeFinalizer(s *sourcesv1alpha1.GitLabSource) {
+func (r *Reconciler) removeFinalizer(s *sourcesv1alpha1.GitLabSource) {
 	finalizers := sets.NewString(s.Finalizers...)
 	finalizers.Delete(finalizerName)
 	s.Finalizers = finalizers.List()
 }
 
-func (r *reconciler) InjectClient(c client.Client) error {
+func (r *Reconciler) InjectClient(c client.Client) error {
 	r.client = c
 	return nil
 }
@@ -408,7 +408,7 @@ func getSinkURI(ctx context.Context, c client.Client, sink *corev1.ObjectReferen
 	return fmt.Sprintf("http://%s/", t.Status.Address.Hostname), nil
 }
 
-func (r *reconciler) getLabelSelector(source *sourcesv1alpha1.GitLabSource) labels.Selector {
+func (r *Reconciler) getLabelSelector(source *sourcesv1alpha1.GitLabSource) labels.Selector {
 	return labels.SelectorFromSet(getLabels(source))
 }
 

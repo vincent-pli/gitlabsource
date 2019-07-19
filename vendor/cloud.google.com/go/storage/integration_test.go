@@ -230,6 +230,9 @@ func TestIntegration_BucketMethods(t *testing.T) {
 	if attrs.VersioningEnabled {
 		t.Error("got versioning enabled, wanted it disabled")
 	}
+	if attrs.LocationType == "" {
+		t.Error("got an empty LocationType")
+	}
 	h.mustDeleteBucket(b)
 
 	// Test Create and Delete with attributes.
@@ -281,6 +284,9 @@ func TestIntegration_BucketMethods(t *testing.T) {
 	}
 	if got, want := attrs.Labels, labels; !testutil.Equal(got, want) {
 		t.Errorf("labels: got %v, want %v", got, want)
+	}
+	if attrs.LocationType == "" {
+		t.Error("got an empty LocationType")
 	}
 	h.mustDeleteBucket(b)
 }
@@ -463,8 +469,6 @@ func TestIntegration_ConditionalDelete(t *testing.T) {
 }
 
 func TestIntegration_Objects(t *testing.T) {
-	t.Skip("https://github.com/googleapis/google-cloud-go/issues/1482")
-
 	// TODO(jba): Use subtests (Go 1.7).
 	ctx := context.Background()
 	client := testConfig(ctx, t)

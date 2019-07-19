@@ -15,7 +15,7 @@ package metrics
 
 import (
 	"cloud.google.com/go/compute/metadata"
-	"github.com/knative/pkg/metrics/metricskey"
+	"knative.dev/pkg/metrics/metricskey"
 )
 
 func retrieveGCPMetadata() *gcpMetadata {
@@ -28,7 +28,7 @@ func retrieveGCPMetadata() *gcpMetadata {
 	if err == nil && project != "" {
 		gm.project = project
 	}
-	location, err := metadata.Zone()
+	location, err := metadata.InstanceAttributeValue("cluster-location")
 	if err == nil && location != "" {
 		gm.location = location
 	}

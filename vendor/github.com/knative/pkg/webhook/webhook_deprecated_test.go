@@ -17,13 +17,14 @@ limitations under the License.
 package webhook
 
 import (
-	"github.com/knative/pkg/apis"
-	. "github.com/knative/pkg/logging/testing"
-	"github.com/knative/pkg/ptr"
-	. "github.com/knative/pkg/testing"
+	"testing"
+
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
+	"knative.dev/pkg/apis"
+	. "knative.dev/pkg/logging/testing"
+	"knative.dev/pkg/ptr"
+	. "knative.dev/pkg/testing"
 )
 
 // In strict mode, you are not allowed to set a deprecated filed when doing a Create.
@@ -497,7 +498,7 @@ func TestStrictValidation(t *testing.T) {
 	}
 	for n, tc := range testCases {
 		t.Run(n, func(t *testing.T) {
-
+			defer ClearAll()
 			ctx := TestContextWithLogger(t)
 			if tc.strict {
 				ctx = apis.DisallowDeprecated(ctx)

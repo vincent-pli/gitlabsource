@@ -21,24 +21,9 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/knative/pkg/apis"
-	"github.com/knative/pkg/apis/duck"
 	corev1 "k8s.io/api/core/v1"
+	"knative.dev/pkg/apis"
 )
-
-func TestTypesImplements(t *testing.T) {
-	testCases := []struct {
-		instance interface{}
-		iface    duck.Implementable
-	}{
-		{instance: &KResource{}, iface: &Conditions{}},
-	}
-	for _, tc := range testCases {
-		if err := duck.VerifyType(tc.instance, tc.iface); err != nil {
-			t.Error(err)
-		}
-	}
-}
 
 func TestStatusGetCondition(t *testing.T) {
 	foo := &apis.Condition{

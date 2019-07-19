@@ -19,7 +19,7 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: gitlab-controller-manager
-  namespace: knative-sources
+  namespace: tekton-sources
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
