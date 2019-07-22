@@ -30,10 +30,9 @@ import (
 	"k8s.io/client-go/tools/record"
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
+	"knative.dev/pkg/injection/clients/dynamicclient"
 	"knative.dev/pkg/injection/clients/kubeclient"
 	"knative.dev/pkg/logging"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 const (
@@ -50,10 +49,7 @@ func NewController(
 	cmw configmap.Watcher,
 ) *controller.Impl {
 	logger := logging.FromContext(ctx)
-	cl, err := client.New(config.GetConfigOrDie(), client.Options{})
-	if err != nil {
-		logger.Errorf("failed to create runtime client")
-	}
+	cl := dynamicclient.Get(ctx)
 
 	kubeclientset := kubeclient.Get(ctx)
 	sourceclientset := sourceclient.Get(ctx)

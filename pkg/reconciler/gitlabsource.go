@@ -23,52 +23,50 @@ import (
 	"strings"
 	"time"
 
-	sourcesv1alpha1 "github.com/vincent-pli/gitlabsource/pkg/apis/sources/v1alpha1"
-	"github.com/vincent-pli/gitlabsource/pkg/reconciler/resources"
+	"github.com/knative/pkg/apis/duck"
+	duckv1alpha1 "github.com/knative/pkg/apis/duck/v1alpha1"
 	"github.com/knative/pkg/logging"
+	sourcesv1alpha1 "github.com/vincent-pli/gitlabsource/pkg/apis/sources/v1alpha1"
+	clientset "github.com/vincent-pli/gitlabsource/pkg/client/clientset/versioned"
+	listers "github.com/vincent-pli/gitlabsource/pkg/client/listers/sources/v1alpha1"
+	"github.com/vincent-pli/gitlabsource/pkg/reconciler/resources"
 	"go.uber.org/zap"
+	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/tools/record"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"	
-	"k8s.io/client-go/kubernetes"
-	clientset "github.com/vincent-pli/gitlabsource/pkg/client/clientset/versioned"
-	listers "github.com/vincent-pli/gitlabsource/pkg/client/listers/sources/v1alpha1"
-	v1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/tools/cache"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	duckv1alpha1 "github.com/knative/pkg/apis/duck/v1alpha1"
-	"github.com/knative/pkg/apis/duck"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
 	// controllerAgentName is the string used by this controller to identify
 	// itself when creating events.
-	raImageEnvVar       = "GL_RA_IMAGE"
-	finalizerName       = controllerAgentName
+	raImageEnvVar = "GL_RA_IMAGE"
+	finalizerName = controllerAgentName
 )
 
 // reconciler reconciles a GitLabSource object
 type Reconciler struct {
-	client   client.Client
-	KubeClientSet              kubernetes.Interface
-	sourceClientSet    clientset.Interface
-	sourceLister       listers.GitLabSourceLister
+	client          dynamic.Interface
+	KubeClientSet   kubernetes.Interface
+	sourceClientSet clientset.Interface
+	sourceLister    listers.GitLabSourceLister
 	//TODO scheme
 	scheme              *runtime.Scheme
 	recorder            record.EventRecorder
-	logger *zap.SugaredLogger
+	logger              *zap.SugaredLogger
 	receiveAdapterImage string
 	webhookClient       webhookClient
-	
 }
 
 type webhookArgs struct {
@@ -152,10 +150,11 @@ func (r *Reconciler) reconcile(ctx context.Context, source *sourcesv1alpha1.GitL
 			if err = controllerutil.SetControllerReference(source, receiver, r.scheme); err != nil {
 				return err
 			}
-			if err = r.client.Create(ctx, receiver); err != nil {
+
+			_, err = r.KubeClientSet.AppsV1().Deployments(source.Namespace).Create(receiver)
+			if err != nil {
 				return err
 			}
-			r.recorder.Eventf(source, corev1.EventTypeNormal, "ServiceCreated", "Created Service %q", receiver.Name)
 			// TODO: Mark Deploying for the ksvc
 			// Wait for the Service to get a status
 			return nil
@@ -332,19 +331,15 @@ func (r *Reconciler) secretFrom(ctx context.Context, namespace string, secretKey
 }
 
 func (r *Reconciler) getOwnedReceiver(ctx context.Context, source *sourcesv1alpha1.GitLabSource) (*v1.Deployment, error) {
-	dl := &v1.DeploymentList{}
-	err := r.client.List(ctx, &client.ListOptions{
-		Namespace:     source.Namespace,
+	dl, err := r.KubeClientSet.AppsV1().Deployments(source.Namespace).List(metav1.ListOptions{
 		LabelSelector: r.getLabelSelector(source),
 		// TODO this is only needed by the fake client. Real K8s does not need it. Remove it once
 		// the fake is fixed.
-		Raw: &metav1.ListOptions{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: v1.SchemeGroupVersion.String(),
-				Kind:       "Deployment",
-			},
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: v1.SchemeGroupVersion.String(),
+			Kind:       "Deployment",
 		},
-	}, dl)
+	})
 
 	if err != nil {
 		logging.FromContext(ctx).Desugar().Error("Unable to list deployments: %v", zap.Error(err))
@@ -370,21 +365,18 @@ func (r *Reconciler) removeFinalizer(s *sourcesv1alpha1.GitLabSource) {
 	s.Finalizers = finalizers.List()
 }
 
-func (r *Reconciler) InjectClient(c client.Client) error {
-	r.client = c
-	return nil
-}
-
 // GetSinkURI retrieves the sink URI from the object referenced by the given
 // ObjectReference.
-func getSinkURI(ctx context.Context, c client.Client, sink *corev1.ObjectReference, namespace string) (string, error) {
+func getSinkURI(ctx context.Context, c dynamic.Interface, sink *corev1.ObjectReference, namespace string) (string, error) {
 	if sink == nil {
 		return "", fmt.Errorf("sink ref is nil")
 	}
 
+	goupVersionResource := schema.GroupVersionResource{Group: sink.GroupVersionKind().Group, Version: sink.GroupVersionKind().Version, Resource: sink.GroupVersionKind().Kind}
 	u := &unstructured.Unstructured{}
-	u.SetGroupVersionKind(sink.GroupVersionKind())
-	err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: sink.Name}, u)
+	// u.SetGroupVersionKind(sink.GroupVersionKind())
+	// err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: sink.Name}, u)
+	u, err := c.Resource(goupVersionResource).Namespace(namespace).Get(sink.Name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -408,13 +400,6 @@ func getSinkURI(ctx context.Context, c client.Client, sink *corev1.ObjectReferen
 	return fmt.Sprintf("http://%s/", t.Status.Address.Hostname), nil
 }
 
-func (r *Reconciler) getLabelSelector(source *sourcesv1alpha1.GitLabSource) labels.Selector {
-	return labels.SelectorFromSet(getLabels(source))
-}
-
-func getLabels(source *sourcesv1alpha1.GitLabSource) map[string]string {
-	return map[string]string{
-		"eventing-source":      controllerAgentName,
-		"eventing-source-name": source.Name,
-	}
+func (r *Reconciler) getLabelSelector(source *sourcesv1alpha1.GitLabSource) string {
+	return fmt.Sprintf("eventing-source=%s, eventing-source-name=%s", controllerAgentName, source.Name)
 }
