@@ -18,30 +18,31 @@ package gitlabsource
 
 import (
 	"context"
-	"time"
 	"os"
+	"time"
 
-
+	sourceclient "github.com/vincent-pli/gitlabsource/pkg/client/injection/client"
+	sourceinformer "github.com/vincent-pli/gitlabsource/pkg/client/injection/informers/sources/v1alpha1/gitlabsource"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/injection/clients/kubeclient"
 	"knative.dev/pkg/logging"
-	sourceclient "github.com/vincent-pli/gitlabsource/pkg/client/injection/client"
-	sourceinformer "github.com/vincent-pli/gitlabsource/pkg/client/injection/informers/sources/v1alpha1/gitlabsource"
-	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/tools/record"
-	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 const (
-	resyncPeriod = 10 * time.Hour
-	controllerAgentName = "gitlab-source-controller"	
+	resyncPeriod        = 10 * time.Hour
+	controllerAgentName = "gitlab-source-controller"
 )
 
 var (
-	scheme              = runtime.NewScheme()
+	scheme = runtime.NewScheme()
 )
 
 func NewController(
@@ -49,6 +50,11 @@ func NewController(
 	cmw configmap.Watcher,
 ) *controller.Impl {
 	logger := logging.FromContext(ctx)
+	cl, err := client.New(config.GetConfigOrDie(), client.Options{})
+	if err != nil {
+		logger.Errorf("failed to create runtime client")
+	}
+
 	kubeclientset := kubeclient.Get(ctx)
 	sourceclientset := sourceclient.Get(ctx)
 	sourceInformer := sourceinformer.Get(ctx)
@@ -65,13 +71,14 @@ func NewController(
 	recorder := eventBroadcaster.NewRecorder(scheme, corev1.EventSource{Component: controllerAgentName})
 
 	c := &Reconciler{
-		KubeClientSet:  kubeclientset,
-		sourceClientSet:  sourceclientset,
-		recorder:       recorder,
-		scheme:         scheme,
-		sourceLister:  sourceInformer.Lister(),      
+		client:              cl,
+		KubeClientSet:       kubeclientset,
+		sourceClientSet:     sourceclientset,
+		recorder:            recorder,
+		scheme:              scheme,
+		sourceLister:        sourceInformer.Lister(),
 		receiveAdapterImage: receiveAdapterImage,
-		logger:        logger,
+		logger:              logger,
 		webhookClient:       gitLabWebhookClient{}, //TODO
 	}
 
