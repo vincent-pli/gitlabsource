@@ -23,9 +23,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/knative/pkg/apis/duck"
-	duckv1alpha1 "github.com/knative/pkg/apis/duck/v1alpha1"
-	"github.com/knative/pkg/logging"
+	"knative.dev/pkg/apis/duck"
+	duckv1alpha1 "knative.dev/pkg/apis/duck/v1alpha1"
+	"knative.dev/pkg/logging"
 	sourcesv1alpha1 "github.com/vincent-pli/gitlabsource/pkg/apis/sources/v1alpha1"
 	clientset "github.com/vincent-pli/gitlabsource/pkg/client/clientset/versioned"
 	listers "github.com/vincent-pli/gitlabsource/pkg/client/listers/sources/v1alpha1"
@@ -37,7 +37,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -372,11 +371,8 @@ func getSinkURI(ctx context.Context, c dynamic.Interface, sink *corev1.ObjectRef
 		return "", fmt.Errorf("sink ref is nil")
 	}
 
-	goupVersionResource := schema.GroupVersionResource{Group: sink.GroupVersionKind().Group, Version: sink.GroupVersionKind().Version, Resource: sink.GroupVersionKind().Kind}
-	u := &unstructured.Unstructured{}
-	// u.SetGroupVersionKind(sink.GroupVersionKind())
-	// err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: sink.Name}, u)
-	u, err := c.Resource(goupVersionResource).Namespace(namespace).Get(sink.Name, metav1.GetOptions{})
+	plural, _ := meta.UnsafeGuessKindToResource(sink.GroupVersionKind())
+	u, err := c.Resource(plural).Namespace(sink.Namespace).Get(sink.Name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}

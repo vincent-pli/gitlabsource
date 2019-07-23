@@ -1,0 +1,25 @@
+apiVersion: sources.eventing.knative.dev/v1alpha1
+kind: GitLabSource
+metadata:
+  name: gitlabsample
+  namespace: tekton-sources
+spec:
+  eventTypes:
+    - merge_requests_events
+    - push_events
+    - issues_events
+  projectURL: https://<GITLAB_URL>/<USERSPACE>/<PROJECT NAME>
+  accessToken:
+    secretKeyRef:
+      name: gitlabsecret
+      key: accessToken
+  secretToken:
+    secretKeyRef:
+      name: gitlabsecret
+      key: secretToken
+  sink:
+    apiVersion: serving.knative.dev/v1alpha1
+    kind: Service
+    name: github-event-display
+    namespace: default
+
