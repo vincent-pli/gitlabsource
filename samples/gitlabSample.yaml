@@ -8,7 +8,7 @@ spec:
     - merge_requests_events
     - push_events
     - issues_events
-  projectURL: https://<GITLAB_URL>/<USERSPACE>/<PROJECT NAME>
+  projectURL: http://best1.fyre.ibm.com:81/root/knative-demo
   accessToken:
     secretKeyRef:
       name: gitlabsecret

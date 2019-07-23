@@ -121,8 +121,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, key string) error {
 }
 
 func (r *Reconciler) reconcile(ctx context.Context, source *sourcesv1alpha1.GitLabSource) error {
+	r.logger.Error("xxxxxxxxxxxxxxxx")
 	source.Status.InitializeConditions()
-
+	
 	accessToken, err := r.secretFrom(ctx, source.Namespace, source.Spec.AccessToken.SecretKeyRef)
 	if err != nil {
 		source.Status.MarkNoSecrets("AccessTokenNotFound", "%s", err)
@@ -154,14 +155,16 @@ func (r *Reconciler) reconcile(ctx context.Context, source *sourcesv1alpha1.GitL
 			if err != nil {
 				return err
 			}
+			r.recorder.Eventf(source, corev1.EventTypeNormal, "ServiceCreated", "Created Service %q", receiver.Name)
 			// TODO: Mark Deploying for the ksvc
 			// Wait for the Service to get a status
-			return nil
+			//return nil
 		}
 		// Error was something other than NotFound
 		return err
 	}
-
+	
+	r.logger.Errorf("____________________")
 	r.addFinalizer(source)
 	receiveAdapterDomain := "xxxxxxxxxxxx"
 	if source.Status.WebhookIDKey == "" {

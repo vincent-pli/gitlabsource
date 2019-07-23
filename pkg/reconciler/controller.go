@@ -21,6 +21,7 @@ import (
 	"os"
 	"time"
 
+	gitlabsourcev1alpha1 "github.com/vincent-pli/gitlabsource/pkg/apis/sources/v1alpha1"
 	sourceclient "github.com/vincent-pli/gitlabsource/pkg/client/injection/client"
 	sourceinformer "github.com/vincent-pli/gitlabsource/pkg/client/injection/informers/sources/v1alpha1/gitlabsource"
 	corev1 "k8s.io/api/core/v1"
@@ -49,6 +50,7 @@ func NewController(
 	cmw configmap.Watcher,
 ) *controller.Impl {
 	logger := logging.FromContext(ctx)
+	gitlabsourcev1alpha1.AddToScheme(scheme)
 	cl := dynamicclient.Get(ctx)
 
 	kubeclientset := kubeclient.Get(ctx)
