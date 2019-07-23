@@ -23,9 +23,6 @@ import (
 	"strings"
 	"time"
 
-	"knative.dev/pkg/apis/duck"
-	duckv1alpha1 "knative.dev/pkg/apis/duck/v1alpha1"
-	"knative.dev/pkg/logging"
 	sourcesv1alpha1 "github.com/vincent-pli/gitlabsource/pkg/apis/sources/v1alpha1"
 	clientset "github.com/vincent-pli/gitlabsource/pkg/client/clientset/versioned"
 	listers "github.com/vincent-pli/gitlabsource/pkg/client/listers/sources/v1alpha1"
@@ -44,6 +41,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
+	"knative.dev/pkg/apis/duck"
+	v1beta1 "knative.dev/pkg/apis/duck/v1beta1"
+	"knative.dev/pkg/logging"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -379,7 +379,7 @@ func getSinkURI(ctx context.Context, c dynamic.Interface, sink *corev1.ObjectRef
 
 	objIdentifier := fmt.Sprintf("\"%s/%s\" (%s)", u.GetNamespace(), u.GetName(), u.GroupVersionKind())
 
-	t := duckv1alpha1.AddressableType{}
+	t := v1beta1.AddressableType{}
 	err = duck.FromUnstructured(u, &t)
 	if err != nil {
 		return "", fmt.Errorf("failed to deserialize sink %s: %v", objIdentifier, err)
@@ -389,11 +389,11 @@ func getSinkURI(ctx context.Context, c dynamic.Interface, sink *corev1.ObjectRef
 		return "", fmt.Errorf("sink %s does not contain address", objIdentifier)
 	}
 
-	if t.Status.Address.Hostname == "" {
-		return "", fmt.Errorf("sink %s contains an empty hostname", objIdentifier)
+	if t.Status.Address.URL == nil {
+		return "", fmt.Errorf("sink %s contains an empty URL", objIdentifier)
 	}
 
-	return fmt.Sprintf("http://%s/", t.Status.Address.Hostname), nil
+	return t.Status.Address.URL.String(), nil
 }
 
 func (r *Reconciler) getLabelSelector(source *sourcesv1alpha1.GitLabSource) string {
