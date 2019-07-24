@@ -23,12 +23,13 @@ import (
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 func MakeReceiveAdapter(source *sourcesv1alpha1.GitLabSource, receiveAdapterImage string) *v1.Deployment {
 	replicas := int32(1)
 	labels := map[string]string{
-		"eventing-source": "gitlab-source-controller",
+		"eventing-source":      "gitlab-source-controller",
 		"eventing-source-name": source.Name,
 	}
 	sinkURI := source.Status.SinkURI
@@ -76,6 +77,30 @@ func MakeReceiveAdapter(source *sourcesv1alpha1.GitLabSource, receiveAdapterImag
 					},
 				},
 			},
+		},
+	}
+}
+
+func MakePublicService(source *sourcesv1alpha1.GitLabSource) *corev1.Service {
+	labels := map[string]string{
+		"eventing-source":      "gitlab-source-controller",
+		"eventing-source-name": source.Name,
+	}
+
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: fmt.Sprintf("%s-", source.Name),
+			Namespace:    source.Namespace,
+			Labels:       labels,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{{
+				Protocol:   corev1.ProtocolTCP,
+				Port:       8080,
+				TargetPort: intstr.FromInt(8080),
+			}},
+			Selector: labels,
+			Type:     corev1.ServiceTypeNodePort,
 		},
 	}
 }

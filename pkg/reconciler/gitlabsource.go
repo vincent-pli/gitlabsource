@@ -162,6 +162,14 @@ func (r *Reconciler) reconcile(ctx context.Context, source *sourcesv1alpha1.GitL
 			if err != nil {
 				return err
 			}
+
+			service := resources.MakePublicService(source)
+			if err = controllerutil.SetControllerReference(source, service, r.scheme); err != nil {
+				return err
+			}
+
+			_, err = r.KubeClientSet.CoreV1().Services(source.Namespace).Create(service)
+
 			r.recorder.Eventf(source, corev1.EventTypeNormal, "ServiceCreated", "Created Service %s", receiver.Name)
 			return nil
 		}
