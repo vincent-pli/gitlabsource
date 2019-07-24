@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"reflect"
 	"strings"
 	"time"
 
@@ -30,6 +31,7 @@ import (
 	"go.uber.org/zap"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -117,13 +119,18 @@ func (r *Reconciler) Reconcile(ctx context.Context, key string) error {
 		reconcileErr = r.finalize(ctx, source)
 	}
 
+	if equality.Semantic.DeepEqual(original.Status, source.Status) {
+	} else if _, err := r.updateStatus(source); err != nil {
+		r.logger.Warn("Failed to update GitlabSource status", err)
+		r.recorder.Event(source, corev1.EventTypeWarning, "", "PipelineRun failed to update")
+		return err
+	}
 	return reconcileErr
 }
 
 func (r *Reconciler) reconcile(ctx context.Context, source *sourcesv1alpha1.GitLabSource) error {
-	r.logger.Error("xxxxxxxxxxxxxxxx")
 	source.Status.InitializeConditions()
-	
+
 	accessToken, err := r.secretFrom(ctx, source.Namespace, source.Spec.AccessToken.SecretKeyRef)
 	if err != nil {
 		source.Status.MarkNoSecrets("AccessTokenNotFound", "%s", err)
@@ -155,16 +162,13 @@ func (r *Reconciler) reconcile(ctx context.Context, source *sourcesv1alpha1.GitL
 			if err != nil {
 				return err
 			}
-			r.recorder.Eventf(source, corev1.EventTypeNormal, "ServiceCreated", "Created Service %q", receiver.Name)
-			// TODO: Mark Deploying for the ksvc
-			// Wait for the Service to get a status
-			//return nil
+			r.recorder.Eventf(source, corev1.EventTypeNormal, "ServiceCreated", "Created Service %s", receiver.Name)
+			return nil
 		}
 		// Error was something other than NotFound
 		return err
 	}
-	
-	r.logger.Errorf("____________________")
+
 	r.addFinalizer(source)
 	receiveAdapterDomain := "xxxxxxxxxxxx"
 	if source.Status.WebhookIDKey == "" {
@@ -401,4 +405,17 @@ func getSinkURI(ctx context.Context, c dynamic.Interface, sink *corev1.ObjectRef
 
 func (r *Reconciler) getLabelSelector(source *sourcesv1alpha1.GitLabSource) string {
 	return fmt.Sprintf("eventing-source=%s, eventing-source-name=%s", controllerAgentName, source.Name)
+}
+
+func (r *Reconciler) updateStatus(source *sourcesv1alpha1.GitLabSource) (*sourcesv1alpha1.GitLabSource, error) {
+	newSource, err := r.sourceLister.GitLabSources(source.Namespace).Get(source.Name)
+	if err != nil {
+		return nil, fmt.Errorf("Error getting Gitlabsourrce %s when updating status: %w", source.Name, err)
+	}
+
+	if !reflect.DeepEqual(source.Status, newSource.Status) {
+		newSource.Status = source.Status
+		return r.sourceClientSet.SourcesV1alpha1().GitLabSources(source.Namespace).UpdateStatus(newSource)
+	}
+	return newSource, nil
 }
