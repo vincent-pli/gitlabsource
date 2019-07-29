@@ -100,7 +100,6 @@ func MakePublicService(source *sourcesv1alpha1.GitLabSource) *corev1.Service {
 				TargetPort: intstr.FromInt(8080),
 			}},
 			Selector: labels,
-			Type:     corev1.ServiceTypeNodePort,
 		},
 	}
 }

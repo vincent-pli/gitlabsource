@@ -178,7 +178,7 @@ func (r *Reconciler) reconcile(ctx context.Context, source *sourcesv1alpha1.GitL
 	}
 
 	r.addFinalizer(source)
-	receiveAdapterDomain := "xxxxxxxxxxxx"
+	receiveAdapterDomain := "9.30.220.166:8080"
 	if source.Status.WebhookIDKey == "" {
 		args := &webhookArgs{
 			source:      source,
