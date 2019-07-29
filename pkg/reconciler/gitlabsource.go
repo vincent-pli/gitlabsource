@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net/url"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -191,7 +192,7 @@ func (r *Reconciler) reconcile(ctx context.Context, source *sourcesv1alpha1.GitL
 		}
 	}
 
-	receiveAdapterDomain := "http://" + svc.Status.LoadBalancer.Ingress[0].IP + ":" + string(svc.Spec.Ports[0].NodePort)
+	receiveAdapterDomain := svc.Status.LoadBalancer.Ingress[0].IP + ":" + strconv.Itoa(int(svc.Spec.Ports[0].NodePort))
 	if source.Status.WebhookIDKey == "" {
 		args := &webhookArgs{
 			source:      source,
