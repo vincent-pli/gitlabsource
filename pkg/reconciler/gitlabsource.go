@@ -178,7 +178,6 @@ func (r *Reconciler) reconcile(ctx context.Context, source *sourcesv1alpha1.GitL
 	}
 
 	r.addFinalizer(source)
-<<<<<<< HEAD
 
 	services, err := r.KubeClientSet.CoreV1().Services(source.Namespace).List(metav1.ListOptions{})
 	if err != nil {
@@ -193,9 +192,6 @@ func (r *Reconciler) reconcile(ctx context.Context, source *sourcesv1alpha1.GitL
 	}
 
 	receiveAdapterDomain := "http://" + svc.Status.LoadBalancer.Ingress[0].IP + ":" + string(svc.Spec.Ports[0].NodePort)
-=======
-	receiveAdapterDomain := "9.30.220.166:8080"
->>>>>>> remotes/origin/master
 	if source.Status.WebhookIDKey == "" {
 		args := &webhookArgs{
 			source:      source,
