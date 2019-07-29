@@ -49,7 +49,7 @@ func MakeReceiveAdapter(source *sourcesv1alpha1.GitLabSource, receiveAdapterImag
 
 	return &v1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: fmt.Sprintf("%s-", source.Name),
+			GenerateName: fmt.Sprintf("%s-deployment", source.Name),
 			Namespace:    source.Namespace,
 			Labels:       labels,
 		},
@@ -89,7 +89,7 @@ func MakePublicService(source *sourcesv1alpha1.GitLabSource) *corev1.Service {
 
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: fmt.Sprintf("%s-", source.Name),
+			GenerateName: fmt.Sprintf("%s-service", source.Name),
 			Namespace:    source.Namespace,
 			Labels:       labels,
 		},
@@ -100,7 +100,7 @@ func MakePublicService(source *sourcesv1alpha1.GitLabSource) *corev1.Service {
 				TargetPort: intstr.FromInt(8080),
 			}},
 			Selector: labels,
-			Type:     corev1.ServiceTypeNodePort,
+			Type:     corev1.ServiceTypeLoadBalancer,
 		},
 	}
 }

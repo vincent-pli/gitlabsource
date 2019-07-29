@@ -178,7 +178,20 @@ func (r *Reconciler) reconcile(ctx context.Context, source *sourcesv1alpha1.GitL
 	}
 
 	r.addFinalizer(source)
-	receiveAdapterDomain := "xxxxxxxxxxxx"
+
+	services, err := r.KubeClientSet.CoreV1().Services(source.Namespace).List(metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	svc := corev1.Service{}
+	for _, service := range services.Items {
+		if strings.HasPrefix(service.GetName(), source.Name) {
+			svc = service
+		}
+	}
+
+	receiveAdapterDomain := "http://" + svc.Status.LoadBalancer.Ingress[0].IP + ":" + string(svc.Spec.Ports[0].NodePort)
 	if source.Status.WebhookIDKey == "" {
 		args := &webhookArgs{
 			source:      source,
