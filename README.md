@@ -1,4 +1,4 @@
-# gitlabsource
+# Gitlabsource
 
 The project is used for listener on `gitlab` webhook and redirect event received to a `addressable` application, for example:
 `tekton/trigger`(https://github.com/tektoncd/triggers).
