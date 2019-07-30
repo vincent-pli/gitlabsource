@@ -455,8 +455,8 @@ func (r *Reconciler) update(source *sourcesv1alpha1.GitLabSource) (*sourcesv1alp
 		return nil, fmt.Errorf("Error getting Gitlabsourrce %s when updating status: %w", source.Name, err)
 	}
 
-	if !reflect.DeepEqual(source.Spec, newSource.Spec) {
-		newSource.Spec = source.Spec
+	if !reflect.DeepEqual(source.Finalizers, newSource.Finalizers) {
+		newSource.Finalizers = source.Finalizers
 		return r.sourceClientSet.SourcesV1alpha1().GitLabSources(source.Namespace).Update(newSource)
 	}
 	return newSource, nil
