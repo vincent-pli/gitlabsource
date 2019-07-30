@@ -123,7 +123,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, key string) error {
 	if equality.Semantic.DeepEqual(original.Status, source.Status) {
 	} else if _, err := r.updateStatus(source); err != nil {
 		r.logger.Warn("Failed to update GitlabSource status", err)
-		r.recorder.Event(source, corev1.EventTypeWarning, "", "PipelineRun failed to update")
+		r.recorder.Event(source, corev1.EventTypeWarning, "", "gitResource failed to update")
+		return err
+	}
+
+	if equality.Semantic.DeepEqual(original.Spec, source.Spec) {
+	} else if _, err := r.update(source); err != nil {
+		r.logger.Warn("Failed to update GitlabSource", err)
+		r.recorder.Event(source, corev1.EventTypeWarning, "", "gitResource failed to update")
 		return err
 	}
 	return reconcileErr
@@ -437,6 +444,19 @@ func (r *Reconciler) updateStatus(source *sourcesv1alpha1.GitLabSource) (*source
 
 	if !reflect.DeepEqual(source.Status, newSource.Status) {
 		newSource.Status = source.Status
+		return r.sourceClientSet.SourcesV1alpha1().GitLabSources(source.Namespace).UpdateStatus(newSource)
+	}
+	return newSource, nil
+}
+
+func (r *Reconciler) update(source *sourcesv1alpha1.GitLabSource) (*sourcesv1alpha1.GitLabSource, error) {
+	newSource, err := r.sourceLister.GitLabSources(source.Namespace).Get(source.Name)
+	if err != nil {
+		return nil, fmt.Errorf("Error getting Gitlabsourrce %s when updating status: %w", source.Name, err)
+	}
+
+	if !reflect.DeepEqual(source.Spec, newSource.Spec) {
+		newSource.Spec = source.Spec
 		return r.sourceClientSet.SourcesV1alpha1().GitLabSources(source.Namespace).UpdateStatus(newSource)
 	}
 	return newSource, nil
