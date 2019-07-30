@@ -140,6 +140,14 @@
   version = "v1.0.0"
 
 [[projects]]
+  digest = "1:a095a30432f90546e50015de1a7238c2ee552faf775bd4f94010d1db41292db6"
+  name = "github.com/gobuffalo/envy"
+  packages = ["."]
+  pruneopts = ""
+  revision = "043cb4b8af871b49563291e32c66bb84378a60ac"
+  version = "v1.7.0"
+
+[[projects]]
   digest = "1:fd53b471edb4c28c7d297f617f4da0d33402755f58d6301e7ca1197ef0a90937"
   name = "github.com/gogo/protobuf"
   packages = [
@@ -303,6 +311,14 @@
   revision = "c2b33e84"
 
 [[projects]]
+  digest = "1:7df5a9695a743c3e1626b28bb8741602c8c15527e1efaeaec48ab2ff9a23f74c"
+  name = "github.com/joho/godotenv"
+  packages = ["."]
+  pruneopts = ""
+  revision = "23d116af351c84513e1946b527c88823e476be13"
+  version = "v1.3.0"
+
+[[projects]]
   digest = "1:12d3de2c11e54ea37d7f00daf85088ad5e61ec4e8a1f828d6c8b657976856be7"
   name = "github.com/json-iterator/go"
   packages = ["."]
@@ -322,7 +338,15 @@
   branch = "master"
   digest = "1:c571b13ccf16f60d6ec73d077f87f8a9516737848d16a87d165d42979fe92755"
   name = "github.com/knative/pkg"
-  packages = ["apis/duck/v1alpha1"]
+  packages = [
+    "apis",
+    "apis/duck/v1alpha1",
+    "configmap",
+    "logging",
+    "logging/logkey",
+    "signals",
+    "webhook",
+  ]
   pruneopts = ""
   revision = "83cfa18c151d1efd88783df4ef35e19f47b592a1"
 
@@ -336,6 +360,14 @@
   ]
   pruneopts = ""
   revision = "34fa5432a41d597266fa09c9c2fbff7beefc47ef"
+
+[[projects]]
+  digest = "1:68145053d55a0fa6b5f259eb70de75cb3914f6440472007e67c87894e1c06697"
+  name = "github.com/markbates/inflect"
+  packages = ["."]
+  pruneopts = ""
+  revision = "24b83195037b3bc61fcda2d28b7b0518bce293b6"
+  version = "v1.0.4"
 
 [[projects]]
   branch = "master"
@@ -437,6 +469,18 @@
   version = "v0.0.3"
 
 [[projects]]
+  digest = "1:5ba8f069e4f3b867775f59ef435941c434e25d42818b4dad2c7c665fa04826b5"
+  name = "github.com/rogpeppe/go-internal"
+  packages = [
+    "modfile",
+    "module",
+    "semver",
+  ]
+  pruneopts = ""
+  revision = "438578804ca6f31be148c27683afc419ce47c06e"
+  version = "v1.3.0"
+
+[[projects]]
   digest = "1:3962f553b77bf6c03fc07cd687a22dd3b00fe11aa14d31194f5505f5bb65cdc8"
   name = "github.com/sergi/go-diff"
   packages = ["diffmatchpatch"]
@@ -451,6 +495,14 @@
   pruneopts = ""
   revision = "298182f68c66c05229eb03ac171abe6e309ee79a"
   version = "v1.0.3"
+
+[[projects]]
+  digest = "1:c182987f68586dfaefd12bf98703a8b86b8a6883e9fc7b6ba498c77aa0552e2c"
+  name = "github.com/tektoncd/pipeline"
+  packages = ["pkg/system"]
+  pruneopts = ""
+  revision = "ef4611b7cf0c0b0f0b1876a1652f283fc63f181b"
+  version = "v0.5.2"
 
 [[projects]]
   digest = "1:2143eb0bf9993b88fbe404d64dfcd5d8a9c102f32330c36c25670d2a6e582792"
@@ -771,6 +823,7 @@
   digest = "1:17bb4953b1b4d62ee3be14aaaae02766c0ba3697f76374538592d6819c6c515a"
   name = "k8s.io/api"
   packages = [
+    "admission/v1beta1",
     "admissionregistration/v1alpha1",
     "admissionregistration/v1beta1",
     "apps/v1",
@@ -1117,14 +1170,22 @@
     "github.com/google/go-cmp/cmp",
     "github.com/google/go-cmp/cmp/cmpopts",
     "github.com/knative/eventing-sources/pkg/kncloudevents",
+    "github.com/knative/pkg/apis",
     "github.com/knative/pkg/apis/duck/v1alpha1",
+    "github.com/knative/pkg/configmap",
+    "github.com/knative/pkg/logging",
+    "github.com/knative/pkg/logging/logkey",
+    "github.com/knative/pkg/signals",
+    "github.com/knative/pkg/webhook",
     "github.com/knative/test-infra/scripts",
     "github.com/knative/test-infra/tools/dep-collector",
+    "github.com/tektoncd/pipeline/pkg/system",
     "github.com/xanzy/go-gitlab",
     "go.uber.org/zap",
     "gopkg.in/go-playground/webhooks.v5/gitlab",
     "k8s.io/api/apps/v1",
     "k8s.io/api/core/v1",
+    "k8s.io/apimachinery/pkg/api/equality",
     "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/api/meta",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
@@ -1134,6 +1195,7 @@
     "k8s.io/apimachinery/pkg/runtime/schema",
     "k8s.io/apimachinery/pkg/runtime/serializer",
     "k8s.io/apimachinery/pkg/types",
+    "k8s.io/apimachinery/pkg/util/intstr",
     "k8s.io/apimachinery/pkg/util/runtime",
     "k8s.io/apimachinery/pkg/util/sets",
     "k8s.io/apimachinery/pkg/watch",
@@ -1152,6 +1214,7 @@
     "knative.dev/caching/pkg/apis/caching/v1alpha1",
     "knative.dev/pkg/apis/duck",
     "knative.dev/pkg/apis/duck/v1alpha1",
+    "knative.dev/pkg/apis/duck/v1beta1",
     "knative.dev/pkg/codegen/cmd/injection-gen",
     "knative.dev/pkg/configmap",
     "knative.dev/pkg/controller",
