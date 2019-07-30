@@ -457,7 +457,7 @@ func (r *Reconciler) update(source *sourcesv1alpha1.GitLabSource) (*sourcesv1alp
 
 	if !reflect.DeepEqual(source.Spec, newSource.Spec) {
 		newSource.Spec = source.Spec
-		return r.sourceClientSet.SourcesV1alpha1().GitLabSources(source.Namespace).UpdateStatus(newSource)
+		return r.sourceClientSet.SourcesV1alpha1().GitLabSources(source.Namespace).Update(newSource)
 	}
 	return newSource, nil
 }
