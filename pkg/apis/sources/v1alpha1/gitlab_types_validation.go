@@ -18,7 +18,8 @@ package v1alpha1
 
 import (
 	"context"
-	"github.com/knative/pkg/apis"
+
+	"knative.dev/pkg/apis"
 )
 
 func (gs *GitLabSource) Validate(ctx context.Context) *apis.FieldError {

@@ -26,6 +26,7 @@ import (
 	"knative.dev/pkg/logging/logkey"
 	"knative.dev/pkg/signals"
 	"knative.dev/pkg/webhook"
+
 	//"github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	"github.com/vincent-pli/gitlabsource/pkg/apis/sources/v1alpha1"
 	"go.uber.org/zap"
@@ -88,7 +89,7 @@ func main() {
 	options := webhook.ControllerOptions{
 		ServiceName:    "tekton-sources-webhook",
 		DeploymentName: "tekton-sources-webhook",
-		Namespace:      system.GetNamespace(),
+		Namespace:      getNamespace(),
 		Port:           8443,
 		SecretName:     "sources-webhook-certs",
 		WebhookName:    "sources-webhook.tekton.dev",
