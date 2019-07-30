@@ -127,7 +127,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, key string) error {
 		return err
 	}
 
-	if equality.Semantic.DeepEqual(original.Spec, source.Spec) {
+	if equality.Semantic.DeepEqual(original.Finalizers, source.Finalizers) {
 	} else if _, err := r.update(source); err != nil {
 		r.logger.Warn("Failed to update GitlabSource", err)
 		r.recorder.Event(source, corev1.EventTypeWarning, "", "gitResource failed to update")
