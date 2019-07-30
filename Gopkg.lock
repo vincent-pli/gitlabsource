@@ -341,11 +341,6 @@
   packages = [
     "apis",
     "apis/duck/v1alpha1",
-    "configmap",
-    "logging",
-    "logging/logkey",
-    "signals",
-    "webhook",
   ]
   pruneopts = ""
   revision = "83cfa18c151d1efd88783df4ef35e19f47b592a1"
@@ -495,14 +490,6 @@
   pruneopts = ""
   revision = "298182f68c66c05229eb03ac171abe6e309ee79a"
   version = "v1.0.3"
-
-[[projects]]
-  digest = "1:c182987f68586dfaefd12bf98703a8b86b8a6883e9fc7b6ba498c77aa0552e2c"
-  name = "github.com/tektoncd/pipeline"
-  packages = ["pkg/system"]
-  pruneopts = ""
-  revision = "ef4611b7cf0c0b0f0b1876a1652f283fc63f181b"
-  version = "v0.5.2"
 
 [[projects]]
   digest = "1:2143eb0bf9993b88fbe404d64dfcd5d8a9c102f32330c36c25670d2a6e582792"
@@ -1142,6 +1129,7 @@
     "metrics/metricskey",
     "signals",
     "system",
+    "webhook",
   ]
   pruneopts = ""
   revision = "83cfa18c151d1efd88783df4ef35e19f47b592a1"
@@ -1172,14 +1160,8 @@
     "github.com/knative/eventing-sources/pkg/kncloudevents",
     "github.com/knative/pkg/apis",
     "github.com/knative/pkg/apis/duck/v1alpha1",
-    "github.com/knative/pkg/configmap",
-    "github.com/knative/pkg/logging",
-    "github.com/knative/pkg/logging/logkey",
-    "github.com/knative/pkg/signals",
-    "github.com/knative/pkg/webhook",
     "github.com/knative/test-infra/scripts",
     "github.com/knative/test-infra/tools/dep-collector",
-    "github.com/tektoncd/pipeline/pkg/system",
     "github.com/xanzy/go-gitlab",
     "go.uber.org/zap",
     "gopkg.in/go-playground/webhooks.v5/gitlab",
@@ -1223,6 +1205,9 @@
     "knative.dev/pkg/injection/clients/kubeclient",
     "knative.dev/pkg/injection/sharedmain",
     "knative.dev/pkg/logging",
+    "knative.dev/pkg/logging/logkey",
+    "knative.dev/pkg/signals",
+    "knative.dev/pkg/webhook",
     "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil",
     "sigs.k8s.io/controller-runtime/pkg/runtime/scheme",
   ]

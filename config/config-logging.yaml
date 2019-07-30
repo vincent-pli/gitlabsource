@@ -15,7 +15,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: config-logging
+  name: config-logging-sources
   namespace: tekton-sources
 data:
   # Common configuration for all knative codebase

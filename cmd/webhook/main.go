@@ -19,14 +19,13 @@ package main
 import (
 	"flag"
 	"log"
+	"os"
 
-	"github.com/knative/pkg/configmap"
-	"github.com/knative/pkg/logging"
-	"github.com/knative/pkg/logging/logkey"
-	"github.com/knative/pkg/signals"
-	"github.com/knative/pkg/webhook"
-	"github.com/tektoncd/pipeline/pkg/system"
-
+	"knative.dev/pkg/configmap"
+	"knative.dev/pkg/logging"
+	"knative.dev/pkg/logging/logkey"
+	"knative.dev/pkg/signals"
+	"knative.dev/pkg/webhook"
 	//"github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	"github.com/vincent-pli/gitlabsource/pkg/apis/sources/v1alpha1"
 	"go.uber.org/zap"
@@ -39,7 +38,9 @@ import (
 const (
 	WebhookLogKey = "webhook"
 	// ConfigName is the name of the ConfigMap that the logging config will be stored in
-	ConfigName = "config-logging-triggers"
+	ConfigName            = "config-logging-sources"
+	SystemNamespaceEnvVar = "SYSTEM_NAMESPACE"
+	DefaultNamespace      = "tekton-sources"
 )
 
 func main() {
@@ -78,7 +79,7 @@ func main() {
 		logger.Fatal("Failed to get the client set", zap.Error(err))
 	}
 	// Watch the logging config map and dynamically update logging levels.
-	configMapWatcher := configmap.NewInformedWatcher(kubeClient, system.GetNamespace())
+	configMapWatcher := configmap.NewInformedWatcher(kubeClient, getNamespace())
 	configMapWatcher.Watch(ConfigName, logging.UpdateLevelFromConfigMap(logger, atomicLevel, WebhookLogKey))
 	if err = configMapWatcher.Start(stopCh); err != nil {
 		logger.Fatalf("failed to start configuration manager: %v", err)
@@ -106,4 +107,14 @@ func main() {
 	if err := controller.Run(stopCh); err != nil {
 		logger.Fatal("Error running admission controller", zap.Error(err))
 	}
+
+}
+
+// GetNamespace holds the K8s namespace where our system components run.
+func getNamespace() string {
+	systemNamespace := os.Getenv(SystemNamespaceEnvVar)
+	if systemNamespace == "" {
+		return DefaultNamespace
+	}
+	return systemNamespace
 }
