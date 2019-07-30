@@ -72,3 +72,9 @@ rules:
   - services
   - routes
   verbs: *everything
+
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - mutatingwebhookconfigurations
+  verbs: *everything
