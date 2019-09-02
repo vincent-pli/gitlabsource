@@ -101,6 +101,11 @@ func (in *GitLabSourceSpec) DeepCopyInto(out *GitLabSourceSpec) {
 		*out = new(v1.ObjectReference)
 		**out = **in
 	}
+	if in.URI != nil {
+		in, out := &in.URI, &out.URI
+		*out = new(string)
+		**out = **in
+	}
 	return
 }
 
