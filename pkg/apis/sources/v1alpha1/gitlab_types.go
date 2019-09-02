@@ -17,11 +17,11 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"knative.dev/pkg/apis/duck"
-	duckv1alpha1 "knative.dev/pkg/apis/duck/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"knative.dev/pkg/apis/duck"
+	duckv1alpha1 "knative.dev/pkg/apis/duck/v1alpha1"
 )
 
 // Check that GitLabSource can be validated and can be defaulted.
@@ -66,6 +66,12 @@ type GitLabSourceSpec struct {
 	// name to use as the sink.
 	// +optional
 	Sink *corev1.ObjectReference `json:"sink,omitempty"`
+
+	// Reference to a 'known' endpoint where no resolving is done.
+	// http://k8s-service for example
+	// http://myexternalhandler.example.com/foo/bar
+	// +optional
+	URI *string `json:"uri,omitempty"`
 
 	// Secure can be set to true to configure the webhook to use https.
 	// +optional
