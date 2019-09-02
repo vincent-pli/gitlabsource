@@ -151,12 +151,18 @@ func (r *Reconciler) reconcile(ctx context.Context, source *sourcesv1alpha1.GitL
 	}
 	source.Status.MarkSecrets()
 
-	uri, err := getSinkURI(ctx, r.client, source.Spec.Sink, source.Namespace)
-	if err != nil {
+	if source.Spec.Sink != nil {
+		uri, err := getSinkURI(ctx, r.client, source.Spec.Sink, source.Namespace)
+		if err != nil {
+			source.Status.MarkNoSink("NotFound", "%s", err)
+			return err
+		}
+		source.Status.MarkSink(uri)
+	} else if source.Spec.URI != nil {
+		source.Status.MarkSink(*source.Spec.URI)
+	} else {
 		source.Status.MarkNoSink("NotFound", "%s", err)
-		return err
 	}
-	source.Status.MarkSink(uri)
 
 	receiver, err := r.getOwnedReceiver(ctx, source)
 	if err != nil {
