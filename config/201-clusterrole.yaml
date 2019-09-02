@@ -74,6 +74,12 @@ rules:
   verbs: *everything
 
 - apiGroups:
+  - eventing.knative.dev
+  resources:
+  - brokers
+  verbs: *everything
+
+- apiGroups:
   - admissionregistration.k8s.io
   resources:
   - mutatingwebhookconfigurations
